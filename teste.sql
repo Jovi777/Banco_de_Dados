@@ -1,11 +1,11 @@
 CREATE DATABASE trabalho;
 #drop database trabalho;
 USE trabalho;
-
-CREATE USER 'admin'@'localhost' IDENTIFIED BY 'admin40028922';
+#show databases;
+#CREATE USER 'admin'@'localhost' IDENTIFIED BY 'admin40028922';
 GRANT ALL PRIVILEGES ON trabalho.* TO 'admin'@'localhost' WITH GRANT OPTION;
 
-CREATE USER 'user'@'localhost' IDENTIFIED BY 'user321';
+#CREATE USER 'user'@'localhost' IDENTIFIED BY 'user321';
 GRANT SELECT, INSERT ON trabalho.* TO 'user'@'localhost';
 
 
@@ -16,7 +16,8 @@ CREATE TABLE associacoes_esportivas (
     qualidade DECIMAL(3,2) CHECK (qualidade BETWEEN 0.0 AND 05.00),
     nome VARCHAR(45) NOT NULL,
     mascote VARCHAR(20),
-    formacao VARCHAR(10) NOT NULL    
+    formacao VARCHAR(10) NOT NULL,
+    tipo varchar(10) not null CHECK (tipo = 'clube' or tipo = 'selecao')
 );
 
 CREATE TABLE cidades(
@@ -37,6 +38,8 @@ CREATE TABLE selecoes(
     id_associacao INT PRIMARY KEY NOT NULL,
     FOREIGN KEY (id_associacao) REFERENCES associacoes_esportivas(id_associacao) ON DELETE CASCADE
 );
+
+-- trabalho feito até aq
 
 CREATE TABLE estadios(
     id_estadio INT AUTO_INCREMENT PRIMARY KEY,
@@ -62,7 +65,7 @@ CREATE TABLE jogadores(
     nome VARCHAR(45) NOT NULL,
     posicao VARCHAR(3) NOT NULL CHECK (posicao IN ('GOL', 'ZAG', 'LE', 'LD', 'ADE', 'ADD', 'VOL', 'MC', 'ME', 'MD', 'MEI', 'PE', 'PD', 'SA', 'ATA')),
     id_selecao INT NOT NULL,
-    FOREIGN KEY (id_selecao) REFERENCES selecoes(id_associacao) ON DELETE CASCADE
+    FOREIGN KEY (id_selecao) REFERENCES selecoes(id_associacao)
 );
 
 CREATE TABLE estilos_de_jogo_jogadores(
@@ -171,5 +174,7 @@ CREATE TABLE funcionarios(
     FOREIGN KEY (id_nacionalidade) REFERENCES selecoes(id_associacao),
     FOREIGN KEY (id_cargo) REFERENCES cargos(id_cargo)
 );
-
+#select * from cidades;
 #select * from associacoes_esportivas;
+#select * from clubes;
+#SELECT * FROM clubes c left JOIN associacoes_esportivas a ON a.id_associacao = c.id_associacao JOIN cidades ci ON ci.id_cidade = c.id_cidade;
