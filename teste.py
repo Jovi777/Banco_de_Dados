@@ -21,8 +21,8 @@ def conectar_banco():
 
 def inserir_associacao(cursor, tipo):
     """Função para inserir dados na tabela associacoes_esportivas"""
-    sigla = input("Digite a sigla da associação (3 caracteres): ")
-    apelido = input("Digite o apelido da associação: ")
+    sigla = input("Digite a sigla da associação (3 caracteres): ").upper()
+    apelido = input("Digite o apelido da associação: ").title()
 
     # Validação do valor de qualidade
     while True:
@@ -36,9 +36,9 @@ def inserir_associacao(cursor, tipo):
         except ValueError:
             print("Por favor, insira um número válido para a qualidade.")
 
-    nome = input("Digite o nome da associação: ")
-    mascote = input("Digite o mascote da associação: ")
-    formacao = input("Digite a formação da associação: ")
+    nome = input("Digite o nome da associação: ").title()
+    mascote = input("Digite o mascote da associação: ").title()
+    formacao = input("Digite a formação da associação: ").upper()
     tipo_associacao = tipo
 
     # Comando SQL para inserção de dados na tabela associacoes_esportivas
@@ -56,8 +56,8 @@ def inserir_associacao(cursor, tipo):
 def inserir_clube(cursor, id_associacao_inserido, conexao):
     """Função para inserir dados do clube, incluindo a cidade"""
     receita_em_mi = float(input("Digite a receita do clube em milhoes: "))
-    cidade_nome = input("Digite o nome da cidade onde o clube está localizado: ")
-    pais = input("Digite o país onde o clube está localizado: ")
+    cidade_nome = input("Digite o nome da cidade onde o clube está localizado: ").title()
+    pais = input("Digite o país onde o clube está localizado: ").title()
 
     # Verifica se a cidade já existe
     id_cidade_inserida = inserir_cidade(cursor, cidade_nome, conexao)
@@ -71,6 +71,7 @@ def inserir_clube(cursor, id_associacao_inserido, conexao):
 
     # Executa o comando para inserir o clube
     cursor.execute(sql_clube, valores_clube)
+    conexao.commit()  # Não se esqueça de fazer o commit na conexão
     print("Clube inserido com sucesso!")
 
 def inserir_selecao(cursor, id_associacao_inserido):
@@ -105,7 +106,7 @@ def inserir_cidade(cursor, cidade_nome, conexao):
 
 def inserir_jogador(cursor):
     """Função para inserir dados de um jogador"""
-    selecao_nome = input("Digite o nome da seleção: ")
+    selecao_nome = input("Digite o nome da seleção: ").title()
 
     # Verifica se a seleção existe no banco de dados
     cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'selecao'", (selecao_nome,))
@@ -119,7 +120,7 @@ def inserir_jogador(cursor):
         selecao = (id_associacao_inserido,)  # Atualiza o ID da seleção
 
     # A partir do ID da seleção, podemos inserir o jogador
-    nome = input("Digite o nome do jogador: ")
+    nome = input("Digite o nome do jogador: ").title()
 
     # Validação da posição do jogador
     posicoes_validas = ["GOL", "ZAG", "LE", "LD", "ADE", "ADD", "VOL", "MC", "ME", "MD", "MEI", "PD", "PE", "SA", "ATA"]
@@ -141,11 +142,78 @@ def inserir_jogador(cursor):
     cursor.execute(sql_jogador, valores_jogador)
     print(f"Jogador '{nome}' inserido com sucesso na seleção '{selecao_nome}'!")
 
+def inserir_estadio_a_clube(cursor, conexao):
+    """Função para inserir um estádio e associá-lo a um clube"""
+    
+    # Perguntar o nome do estádio e do clube
+    nome_estadio = input("Digite o nome do estádio: ").title()
+    nome_clube = input("Digite o nome do clube ao qual o estádio será atrelado: ").title()
+
+    # Passo 1: Verificar se o estádio existe, se não, criar
+    cursor.execute("SELECT id_estadio FROM estadios WHERE nome = %s", (nome_estadio,))
+    estadio = cursor.fetchone()
+
+    if estadio is None:
+        print(f"O estádio '{nome_estadio}' não existe. Vamos criá-lo.")
+        # Se o estádio não existir, criá-lo
+        inserir_estadio(cursor, nome_estadio)
+
+    # Passo 2: Verificar se o clube existe, se não, criar
+    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'clube'", (nome_clube,))
+    clube = cursor.fetchone()
+
+    if clube is None:
+        print(f"O clube '{nome_clube}' não existe. Vamos criá-lo.")
+        # Se o clube não existir, criá-lo
+        id_associacao_inserido = inserir_associacao(cursor, tipo="clube")
+        inserir_clube(cursor, id_associacao_inserido, conexao)  # Passar conexao para inserir_clube
+
+    # Obter id do estádio recém-criado (ou já existente)
+    cursor.execute("SELECT id_estadio FROM estadios WHERE nome = %s", (nome_estadio,))
+    estadio = cursor.fetchone()
+    
+    # Obter id do clube recém-criado (ou já existente)
+    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'clube'", (nome_clube,))
+    clube = cursor.fetchone()
+
+    # Associar o estádio ao clube na tabela clube_estadios
+    sql_associacao = """
+        INSERT INTO clube_estadios (id_estadio, id_associacao)
+        VALUES (%s, %s)
+    """
+    valores_associacao = (estadio[0], clube[0])
+
+    cursor.execute(sql_associacao, valores_associacao)
+    conexao.commit()  # Confirma a associação no banco de dados
+    print(f"O estádio '{nome_estadio}' foi associado com sucesso ao clube '{nome_clube}'!")
+
+def inserir_estadio(cursor, nome_estadio):
+    """Função para criar apenas um estádio"""
+    
+    while True:
+        try:
+            capacidade = int(input("Digite a capacidade do estádio (entre 1000 e 100000): "))
+            if 1000 <= capacidade <= 100000:
+                break
+            else:
+                print("Capacidade inválida! Deve estar entre 1000 e 100000.")
+        except ValueError:
+            print("Por favor, insira um número válido para a capacidade.")
+
+    # Inserir o estádio na tabela estadios
+    sql_estadio = """
+        INSERT INTO estadios (nome, capacidade)
+        VALUES (%s, %s)
+    """
+    valores_estadio = (nome_estadio, capacidade)
+    cursor.execute(sql_estadio, valores_estadio)
+    print(f"O estádio '{nome_estadio}' foi criado com sucesso!")
+
 
 # possiveis funções:
 '''
-Inserir estadio, atrelar estadio a um clube
-Inserir contrato, atrelar jogador a um clube
+Inserir estadio, atrelar estadio a um clube FEITO
+Inserir contrato, atrelar jogador a um clube 
 Inserir Atributos, atribuir atributos ao jogador
 Inserir Estilo de jogo, atribuir estilo de jogo ao jogador
 Inserir Campeonatos, adicionar campeonato
@@ -169,9 +237,8 @@ def menu():
         print("1 - Inserir Clube")
         print("2 - Inserir Selecao")
         print("3 - Inserir Jogador")
-        
-        print("4 - X")
-        print("5 - X")
+        print("4 - Inserir Estadio")
+        print("5 - Atrelar Estadio a um clube")
         print("6 - X")
         print("7 - X")
         print("8 - X")
@@ -196,9 +263,12 @@ def menu():
                 # Inserir jogador
                 inserir_jogador(cursor)
             elif escolha == "4":
-                print("Função em desenvolvimento.")
+                # Inserir estadio
+                nome_estadio = input("Digite o nome do estadio: ").title()
+                inserir_estadio(cursor, nome_estadio)
             elif escolha == "5":
-                print("Função em desenvolvimento.")
+                # Atrelar estadio a um clube
+                inserir_estadio_a_clube(cursor, conexao)
             elif escolha == "6":
                 print("Função em desenvolvimento.")
             elif escolha == "7":
