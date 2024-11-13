@@ -27,7 +27,7 @@ CREATE TABLE cidades(
 
 CREATE TABLE clubes(
     id_associacao INT PRIMARY KEY NOT NULL,
-    receita FLOAT NOT NULL CHECK (receita BETWEEN 0 AND 1000000000),
+    receita_em_mi FLOAT NOT NULL,
     id_cidade INT NOT NULL,
     pais VARCHAR(45) NOT NULL,
     FOREIGN KEY (id_associacao) REFERENCES associacoes_esportivas(id_associacao) ON DELETE CASCADE,
@@ -137,8 +137,8 @@ CREATE TABLE estatisticas(
     gol INT CHECK (gol >= 0),
     assist INT CHECK (assist >= 0),
     nota_jogo DECIMAL(3,2) CHECK (nota_jogo BETWEEN 0 AND 10),
-    cartao_ver INT CHECK (cartao_ver BETWEEN 0 AND 2),
-    cartao_ama INT CHECK (cartao_ama BETWEEN 0 AND 5),
+    cartao_ver INT,
+    cartao_ama INT,
     id_jogador INT NOT NULL,
     id_campeonato INT NOT NULL,
     numero_jogos INT CHECK (numero_jogos >= 0),
@@ -177,4 +177,6 @@ CREATE TABLE funcionarios(
 #select * from cidades;
 #select * from associacoes_esportivas;
 #select * from clubes;
+#select * from selecoes s left join associacoes_esportivas a on a.id_associacao = s.id_associacao;
 #SELECT * FROM clubes c left JOIN associacoes_esportivas a ON a.id_associacao = c.id_associacao JOIN cidades ci ON ci.id_cidade = c.id_cidade;
+#select * from jogadores
