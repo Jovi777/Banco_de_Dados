@@ -357,7 +357,7 @@ def menu():
         print("5 - Atrelar Estadio a um clube")
         print("6 - Inserir Campeonato")
         print("7 - Inserir Associacao a um Campeonato")
-        print("8 - X")
+        print("8 - Adicionar Partidas a um Campeonato")
         print("9 - X")
         print("X - Sair")
 
