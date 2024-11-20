@@ -7,7 +7,7 @@ def conectar_banco():
         conexao = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='1826',
+            password='udesc',
             database='trabalho'
         )
         if conexao.is_connected():
@@ -209,6 +209,122 @@ def inserir_estadio(cursor, nome_estadio):
     cursor.execute(sql_estadio, valores_estadio)
     print(f"O estádio '{nome_estadio}' foi criado com sucesso!")
 
+#trabalho funcionando até aqui kkkj --------------------------------------------
+
+def inserir_campeonato(cursor, conexao):
+    """Função para inserir dados de um campeonato"""
+    nome_campeonato = input("Digite o nome do campeonato: ").title()
+
+    # Verificar se o campeonato já existe no banco de dados
+    cursor.execute("SELECT id_campeonato FROM campeonatos WHERE nome = %s", (nome_campeonato,))
+    campeonato = cursor.fetchone()
+
+    if campeonato:
+        print(f"O campeonato '{nome_campeonato}' já existe no banco de dados com o ID {campeonato[0]}.")
+        return
+
+    # Caso o campeonato não exista, insira-o
+    sql_campeonato = """
+        INSERT INTO campeonatos (nome)
+        VALUES (%s)
+    """
+    cursor.execute(sql_campeonato, (nome_campeonato,))
+    conexao.commit()  # Confirma a inserção no banco de dados
+    print(f"Campeonato '{nome_campeonato}' inserido com sucesso!")
+
+def inserir_associacoes_campeonato(cursor, conexao, nome_campeonato):
+    """Função para associar clubes ou seleções a um campeonato pelo nome"""
+
+    # Buscar o ID do campeonato pelo nome
+    cursor.execute("SELECT id_campeonato FROM campeonatos WHERE nome = %s", (nome_campeonato,))
+    campeonato = cursor.fetchone()
+
+    if not campeonato:
+        print(f"Erro: O campeonato '{nome_campeonato}' não existe. Tente novamente.")
+        return  # Sai da função se o campeonato não existir
+
+    id_campeonato = campeonato[0]
+    print(f"Associando clubes ou seleções ao campeonato '{nome_campeonato}' (ID {id_campeonato}).")
+
+    while True:
+        nome_associacao = input("Digite o nome da associação (ou 'sair' para encerrar): ").title()
+        if nome_associacao.lower() == "sair":
+            break
+
+        # Verifica se a associação existe
+        cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s", (nome_associacao,))
+        associacao = cursor.fetchone()
+
+        if associacao is None:
+            print(f"A associação '{nome_associacao}' não existe no banco de dados. Tente novamente.")
+            continue
+
+        # Verifica se a associação já está vinculada ao campeonato
+        cursor.execute("""
+            SELECT * FROM campeonatos_associacoes 
+            WHERE id_campeonato = %s AND id_associacao = %s
+        """, (id_campeonato, associacao[0]))
+        existente = cursor.fetchone()
+
+        if existente:
+            print(f"A associação '{nome_associacao}' já está vinculada ao campeonato.")
+            continue
+
+        # Insere a associação no campeonato com uma classificação inicial
+        classificacao = int(input(f"Digite a classificação inicial para '{nome_associacao}': "))
+        cursor.execute("""
+            INSERT INTO campeonatos_associacoes (id_campeonato, id_associacao, classificacao)
+            VALUES (%s, %s, %s)
+        """, (id_campeonato, associacao[0], classificacao))
+        conexao.commit()
+        print(f"Associação '{nome_associacao}' vinculada ao campeonato '{nome_campeonato}' com sucesso!")
+
+def inserir_partidas_campeonato(cursor, conexao, nome_campeonato):
+    """Função para registrar partidas em um campeonato pelo nome"""
+
+    # Buscar o ID do campeonato pelo nome
+    cursor.execute("SELECT id_campeonato FROM campeonatos WHERE nome = %s", (nome_campeonato,))
+    campeonato = cursor.fetchone()
+
+    if not campeonato:
+        print(f"Erro: O campeonato '{nome_campeonato}' não existe. Tente novamente.")
+        return  # Sai da função se o campeonato não existir
+
+    id_campeonato = campeonato[0]
+    print(f"Registrando partidas para o campeonato '{nome_campeonato}' (ID {id_campeonato}).")
+
+    while True:
+        adicionar = input("Deseja adicionar uma partida ao campeonato? (s/n): ").lower()
+        if adicionar == "n":
+            break
+
+        # Solicitar os nomes das associações envolvidas
+        nome_mandante = input("Digite o nome da associação mandante: ").title()
+        nome_visitante = input("Digite o nome da associação visitante: ").title()
+
+        # Verificar se as associações existem
+        cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s", (nome_mandante,))
+        mandante = cursor.fetchone()
+        cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s", (nome_visitante,))
+        visitante = cursor.fetchone()
+
+        if not mandante or not visitante:
+            print(f"Erro: Uma das associações ('{nome_mandante}' ou '{nome_visitante}') não existe no banco de dados. Tente novamente.")
+            continue
+
+        # Solicitar os dados da partida
+        resultado = input("Digite o resultado da partida (Ex.: 2-1): ")
+        tempo = input("Digite o tempo de jogo (HH:MM:SS): ")
+
+        # Inserir a partida no banco de dados
+        sql_partida = """
+            INSERT INTO partidas (id_campeonato, id_mandante, id_visitante, resultado, tempo)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        valores_partida = (id_campeonato, mandante[0], visitante[0], resultado, tempo)
+        cursor.execute(sql_partida, valores_partida)
+        conexao.commit()
+        print(f"Partida entre '{nome_mandante}' e '{nome_visitante}' registrada com sucesso!")
 
 # possiveis funções:
 '''
@@ -239,8 +355,8 @@ def menu():
         print("3 - Inserir Jogador")
         print("4 - Inserir Estadio")
         print("5 - Atrelar Estadio a um clube")
-        print("6 - X")
-        print("7 - X")
+        print("6 - Inserir Campeonato")
+        print("7 - Inserir Associacao a um Campeonato")
         print("8 - X")
         print("9 - X")
         print("X - Sair")
@@ -255,26 +371,37 @@ def menu():
                 # Inserir clube
                 id_associacao_inserido = inserir_associacao(cursor, tipo="clube")
                 inserir_clube(cursor, id_associacao_inserido, conexao)
+                
             elif escolha == "2":
                 # Inserir seleção
                 id_associacao_inserido = inserir_associacao(cursor, tipo="selecao")
                 inserir_selecao(cursor, id_associacao_inserido)
+
             elif escolha == "3":
                 # Inserir jogador
                 inserir_jogador(cursor)
+
             elif escolha == "4":
                 # Inserir estadio
                 nome_estadio = input("Digite o nome do estadio: ").title()
                 inserir_estadio(cursor, nome_estadio)
+
             elif escolha == "5":
                 # Atrelar estadio a um clube
                 inserir_estadio_a_clube(cursor, conexao)
+
             elif escolha == "6":
-                print("Função em desenvolvimento.")
+                #Criar campeonato dale flamengo
+                inserir_campeonato(cursor, conexao)
+
             elif escolha == "7":
-                print("Função em desenvolvimento.")
+                nome_campeonato = input("Digite o nome do campeonato ao qual deseja adicionar associações: ").title()
+                inserir_associacoes_campeonato(cursor, conexao, nome_campeonato)
+
             elif escolha == "8":
-                print("Função em desenvolvimento.")
+                nome_campeonato = input("Digite o nome do campeonato para adicionar partidas: ").title()
+                inserir_partidas_campeonato(cursor, conexao, nome_campeonato)
+
             elif escolha == "9":
                 print("Função em desenvolvimento.")
             else:
