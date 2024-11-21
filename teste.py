@@ -7,7 +7,7 @@ def conectar_banco():
         conexao = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='1826',
+            password='udesc',
             database='trabalho'
         )
         if conexao.is_connected():
@@ -576,11 +576,141 @@ def inserir_estilo_de_jogo(cursor):
     cursor.execute(sql_associacao, valores_associacao)
     print(f"Estilo de jogo '{nome_estilo}' associado com sucesso ao jogador '{nome_jogador}'!")
 
-def inserir_funcionario(cursor):
-    return 0
+def inserir_funcionario(cursor, conexao):
+    """Insere um funcionário na tabela 'funcionarios'."""
+    # Entrada de dados do funcionário
+    nome_funcionario = input("Digite o nome do funcionário: ").title()
+    qualidade = float(input("Digite a qualidade do funcionário (0.00 a 5.00): "))
 
-def inserir_estatistica(cursor):
-    return 0
+    # Inserir ou validar o cargo
+    cargo_nome = input("Digite o nome do cargo do funcionário: ").title()
+    cursor.execute("SELECT id_cargo FROM cargos WHERE descricao = %s", (cargo_nome,))
+    cargo = cursor.fetchone()
+
+    if not cargo:
+        print(f"O cargo '{cargo_nome}' não existe. Criando novo cargo...")
+        cursor.execute("INSERT INTO cargos (descricao) VALUES (%s)", (cargo_nome,))
+        conexao.commit()
+        id_cargo = cursor.lastrowid
+    else:
+        id_cargo = cargo[0]
+
+    # Escolher a associação esportiva pelo nome
+    associacao_nome = input("Digite o nome da associação esportiva: ").title()
+    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s", (associacao_nome,))
+    associacao = cursor.fetchone()
+    if not associacao:
+        print(f"Erro: Associação esportiva '{associacao_nome}' não encontrada.")
+        return
+    id_associacao = associacao[0]
+
+    # Escolher a nacionalidade pelo nome (seleção)
+    nacionalidade_nome = input("Digite o nome da seleção (nacionalidade): ").title()
+    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'selecao'", (nacionalidade_nome,))
+    nacionalidade = cursor.fetchone()
+    if not nacionalidade:
+        print(f"Erro: Seleção '{nacionalidade_nome}' não encontrada.")
+        return
+    id_nacionalidade = nacionalidade[0]
+
+    # Inserir funcionário
+    sql_funcionario = """
+        INSERT INTO funcionarios (nome, qualidade, id_associacao, id_cargo, id_nacionalidade)
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    valores = (nome_funcionario, qualidade, id_associacao, id_cargo, id_nacionalidade)
+    cursor.execute(sql_funcionario, valores)
+    conexao.commit()
+
+    print(f"Funcionário '{nome_funcionario}' inserido com sucesso!")
+
+
+
+def inserir_estatisticas(cursor, conexao):
+    """Insere ou atualiza estatísticas de um jogador em um campeonato."""
+    # Entrada de dados básicos
+    jogador_nome = input("Digite o nome do jogador: ").title()
+    campeonato_nome = input("Digite o nome do campeonato: ").title()
+
+    # Verificar se o jogador existe
+    cursor.execute("SELECT id_jogador FROM jogadores WHERE nome = %s", (jogador_nome,))
+    jogador = cursor.fetchone()
+    if not jogador:
+        print(f"Erro: Jogador '{jogador_nome}' não encontrado.")
+        return
+    id_jogador = jogador[0]
+
+    # Verificar se o campeonato existe
+    cursor.execute("SELECT id_campeonato FROM campeonatos WHERE nome = %s", (campeonato_nome,))
+    campeonato = cursor.fetchone()
+    if not campeonato:
+        print(f"Erro: Campeonato '{campeonato_nome}' não encontrado.")
+        return
+    id_campeonato = campeonato[0]
+
+    # Verificar se já existem estatísticas para o jogador neste campeonato
+    cursor.execute("""
+        SELECT id_estatistica, gol, assist, nota_jogo, cartao_ver, cartao_ama, numero_jogos
+        FROM estatisticas
+        WHERE id_jogador = %s AND id_campeonato = %s
+    """, (id_jogador, id_campeonato))
+    estatisticas = cursor.fetchone()
+
+    # Entrada de novos valores ou atualização dos existentes
+    if estatisticas:
+        print("\nEstatísticas atuais:")
+        print(f"Gols: {estatisticas[1]}, Assistências: {estatisticas[2]}, Nota Média: {estatisticas[3]}, "
+              f"Cartões Vermelhos: {estatisticas[4]}, Cartões Amarelos: {estatisticas[5]}, Jogos: {estatisticas[6]}")
+
+        print("\nAtualize as estatísticas (deixe em branco para manter os valores atuais):")
+        gols = input("Digite o número de gols: ").strip()
+        assistencias = input("Digite o número de assistências: ").strip()
+        nota_jogo = input("Digite a nota média: ").strip()
+        cartoes_ver = input("Digite o número de cartões vermelhos: ").strip()
+        cartoes_ama = input("Digite o número de cartões amarelos: ").strip()
+        numero_jogos = input("Digite o número de jogos: ").strip()
+
+        # Usar valores antigos se a entrada for vazia
+        novos_valores = {
+            "gol": int(gols) if gols else estatisticas[1],
+            "assist": int(assistencias) if assistencias else estatisticas[2],
+            "nota_jogo": float(nota_jogo) if nota_jogo else estatisticas[3],
+            "cartao_ver": int(cartoes_ver) if cartoes_ver else estatisticas[4],
+            "cartao_ama": int(cartoes_ama) if cartoes_ama else estatisticas[5],
+            "numero_jogos": int(numero_jogos) if numero_jogos else estatisticas[6],
+        }
+
+        # Atualizar as estatísticas no banco
+        sql_update = """
+            UPDATE estatisticas
+            SET gol = %s, assist = %s, nota_jogo = %s, cartao_ver = %s, cartao_ama = %s, numero_jogos = %s
+            WHERE id_estatistica = %s
+        """
+        cursor.execute(sql_update, (
+            novos_valores["gol"], novos_valores["assist"], novos_valores["nota_jogo"],
+            novos_valores["cartao_ver"], novos_valores["cartao_ama"], novos_valores["numero_jogos"],
+            estatisticas[0]
+        ))
+        conexao.commit()
+        print("Estatísticas atualizadas com sucesso!")
+
+    else:
+        # Inserir novas estatísticas
+        print("\nInserindo novas estatísticas.")
+        gols = int(input("Digite o número de gols: "))
+        assistencias = int(input("Digite o número de assistências: "))
+        nota_jogo = float(input("Digite a nota média (0.00 a 10.00): "))
+        cartoes_ver = int(input("Digite o número de cartões vermelhos: "))
+        cartoes_ama = int(input("Digite o número de cartões amarelos: "))
+        numero_jogos = int(input("Digite o número de jogos: "))
+
+        sql_insert = """
+            INSERT INTO estatisticas (gol, assist, nota_jogo, cartao_ver, cartao_ama, id_jogador, id_campeonato, numero_jogos)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(sql_insert, (gols, assistencias, nota_jogo, cartoes_ver, cartoes_ama, id_jogador, id_campeonato, numero_jogos))
+        conexao.commit()
+        print("Estatísticas inseridas com sucesso!")
 
 # possiveis funções:
 '''
@@ -617,7 +747,8 @@ def menu():
         print("9 - Inserir Atributos")
         print("10 - Inserir Contratos")
         print("11 - Inserir Estilo de jogo")
-        print("X - Sair")
+        print("12 - Inserir Funcionário ")
+        print("13 - Inserir Estatisticas")
 
         escolha = input("Escolha a opção: ")
 
@@ -659,7 +790,7 @@ def menu():
             elif escolha == "8":
                 nome_campeonato = input("Digite o nome do campeonato para adicionar partidas: ").title()
                 inserir_partidas_campeonato(cursor, conexao, nome_campeonato)
-
+            
             elif escolha == "9":
                 inserir_atributos(cursor)
             
@@ -668,7 +799,12 @@ def menu():
             
             elif escolha == "11":
                 inserir_estilo_de_jogo(cursor)
+
+            elif escolha == "12":
+                inserir_funcionario(cursor, conexao)
             
+            elif escolha == "13":
+                inserir_estatisticas(cursor, conexao)
 
             else:
                 print("Saindo do programa...")
