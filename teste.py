@@ -1245,7 +1245,7 @@ def menu():
         print("18 - Alterar Contrato")
         print("19 - Alterar Atributos")
         print("20 - Alterar Estilo de jogo")
-
+        print("X - SAIR")
 
         escolha = input("Escolha a opção: ")
 
@@ -1324,7 +1324,6 @@ def menu():
             elif escolha == "20":
                 alterar_estilo_de_jogo(cursor, conexao)
 
-
             else:
                 print("Saindo do programa...")
                 break
@@ -1332,6 +1331,6 @@ def menu():
             conexao.commit()  # Confirma todas as alterações no banco
             cursor.close()
             conexao.close()
-
+#wasd
 if __name__ == "__main__":
-    menu()
+    menu() 
