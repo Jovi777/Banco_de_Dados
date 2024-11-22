@@ -180,3 +180,5 @@ CREATE TABLE funcionarios(
 #select * from selecoes s left join associacoes_esportivas a on a.id_associacao = s.id_associacao;
 #SELECT * FROM clubes c left JOIN associacoes_esportivas a ON a.id_associacao = c.id_associacao JOIN cidades ci ON ci.id_cidade = c.id_cidade;
 #select * from jogadores
+
+
