@@ -7,7 +7,7 @@ def conectar_banco():
         conexao = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='1826',
+            password='udesc',
             database='trabalho'
         )
         if conexao.is_connected():
@@ -1200,6 +1200,76 @@ def alterar_estilo_de_jogo(cursor, conexao):
 
     print(f"Estilo de jogo '{nome_estilo}' associado com sucesso ao jogador '{nome_jogador}'!")
 
+def alterar_funcionario(cursor, conexao):
+    """Altera dados de um funcionário na tabela 'funcionarios'."""
+    nome_funcionario = input("Digite o nome do funcionário que deseja alterar: ").title()
+
+    # Verifica se o funcionário existe
+    cursor.execute("SELECT * FROM funcionarios WHERE nome = %s", (nome_funcionario,))
+    funcionario = cursor.fetchone()
+
+    if not funcionario:
+        print(f"O funcionário '{nome_funcionario}' não existe.")
+        return
+
+    print("Deixe em branco para manter o valor atual.")
+    novo_nome = input(f"Novo nome ({funcionario[1]}): ").title() or funcionario[1]
+    nova_qualidade = input(f"Nova qualidade ({funcionario[2]}): ") or funcionario[2]
+
+    # Atualiza o cargo
+    cargo_atual = input("Digite o cargo atual do funcionário: ").title()
+    cursor.execute("SELECT id_cargo FROM cargos WHERE descricao = %s", (cargo_atual,))
+    cargo = cursor.fetchone()
+
+    if not cargo:
+        print(f"Cargo '{cargo_atual}' não encontrado.")
+        return
+
+    id_cargo = cargo[0]
+
+    # Atualiza a nacionalidade
+    nova_nacionalidade = input("Digite a nova seleção (nacionalidade): ").title()
+    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'selecao'", (nova_nacionalidade,))
+    nacionalidade = cursor.fetchone()
+
+    if not nacionalidade:
+        print(f"Seleção '{nova_nacionalidade}' não encontrada.")
+        return
+
+    id_nacionalidade = nacionalidade[0]
+
+    # Atualiza os dados no banco
+    sql_update = """
+        UPDATE funcionarios
+        SET nome = %s, qualidade = %s, id_cargo = %s, id_nacionalidade = %s
+        WHERE id_funcionario = %s
+    """
+    valores = (novo_nome, nova_qualidade, id_cargo, id_nacionalidade, funcionario[0])
+    cursor.execute(sql_update, valores)
+    conexao.commit()
+    print(f"Funcionário '{nome_funcionario}' atualizado com sucesso!")
+
+def alterar_campeonato(cursor, conexao):
+    """Altera dados de um campeonato na tabela 'campeonatos'."""
+    nome_campeonato = input("Digite o nome do campeonato que deseja alterar: ").title()
+
+    # Verifica se o campeonato existe
+    cursor.execute("SELECT * FROM campeonatos WHERE nome = %s", (nome_campeonato,))
+    campeonato = cursor.fetchone()
+
+    if not campeonato:
+        print(f"O campeonato '{nome_campeonato}' não existe.")
+        return
+
+    print("Deixe em branco para manter o valor atual.")
+    novo_nome = input(f"Novo nome do campeonato ({campeonato[1]}): ").title() or campeonato[1]
+
+    # Atualiza os dados no banco
+    sql_update = "UPDATE campeonatos SET nome = %s WHERE id_campeonato = %s"
+    cursor.execute(sql_update, (novo_nome, campeonato[0]))
+    conexao.commit()
+    print(f"Campeonato '{nome_campeonato}' atualizado com sucesso!")
+
 
 # possiveis funções:
 '''
@@ -1245,6 +1315,8 @@ def menu():
         print("18 - Alterar Contrato")
         print("19 - Alterar Atributos")
         print("20 - Alterar Estilo de jogo")
+        print("21 - Alterar Funcionario")
+        print("22 - Alterar Campeonato")
         print("X - SAIR")
 
         escolha = input("Escolha a opção: ")
@@ -1323,6 +1395,12 @@ def menu():
             
             elif escolha == "20":
                 alterar_estilo_de_jogo(cursor, conexao)
+
+            elif escolha == "21":
+                alterar_funcionario(cursor, conexao)
+            
+            elif escolha == "22":
+                alterar_campeonato(cursor, conexao)
 
             else:
                 print("Saindo do programa...")
