@@ -209,8 +209,6 @@ def inserir_estadio(cursor, nome_estadio):
     cursor.execute(sql_estadio, valores_estadio)
     print(f"O estádio '{nome_estadio}' foi criado com sucesso!")
 
-#funções para alterar daqui p baixo é vc...
-
 def inserir_campeonato(cursor, conexao):
     """Função para inserir dados de um campeonato"""
     nome_campeonato = input("Digite o nome do campeonato: ").title()
@@ -325,8 +323,6 @@ def inserir_partidas_campeonato(cursor, conexao, nome_campeonato):
         cursor.execute(sql_partida, valores_partida)
         conexao.commit()
         print(f"Partida entre '{nome_mandante}' e '{nome_visitante}' registrada com sucesso!")
-
-#daq p baixo sou eu
 
 def inserir_contrato(cursor):
     """Função para inserir contrato de um jogador em um clube"""
@@ -580,8 +576,6 @@ def inserir_estilo_de_jogo(cursor):
     cursor.execute(sql_associacao, valores_associacao)
     print(f"Estilo de jogo '{nome_estilo}' associado com sucesso ao jogador '{nome_jogador}'!")
 
-#termina aq
-
 def inserir_funcionario(cursor, conexao):
     """Insere um funcionário na tabela 'funcionarios'."""
     # Entrada de dados do funcionário
@@ -716,7 +710,7 @@ def inserir_estatisticas(cursor, conexao):
         conexao.commit()
         print("Estatísticas inseridas com sucesso!")
 
-#funcoes alterar
+#Funções Alterar
 
 def alterar_clube(cursor, conexao):
     """Altera dados de um clube."""
@@ -1200,137 +1194,685 @@ def alterar_estilo_de_jogo(cursor, conexao):
 
     print(f"Estilo de jogo '{nome_estilo}' associado com sucesso ao jogador '{nome_jogador}'!")
 
+def alterar_funcionario(cursor, conexao):
+    """Altera dados de um funcionário na tabela 'funcionarios'."""
+    nome_funcionario = input("Digite o nome do funcionário que deseja alterar: ").title()
 
-# possiveis funções:
-'''
-Inserir estadio, atrelar estadio a um clube FEITO
-Inserir contrato, atrelar jogador a um clube FEITO
-Inserir Atributos, atribuir atributos ao jogador FEITO
-Inserir Estilo de jogo, atribuir estilo de jogo ao jogador FEITO
-Inserir Campeonatos, adicionar campeonato FEITO
-Inserir times em campeonatos, add time e campeonato caso ñ existam +- FEITO
-Inserir estatisticas, add campeonato e add jogador 
-Inserir partidas, add clubes e campeonatos e add clubes aos campeonatos caso campeonato not null      +- FEITO
-Inserir Funcionarios, adicionar cargo caso não exista, adicionar nacionalidade caso não exista e add clube     
+    # Verifica se o funcionário existe
+    cursor.execute("SELECT * FROM funcionarios WHERE nome = %s", (nome_funcionario,))
+    funcionario = cursor.fetchone()
 
-Funções para alterar tudo isso
+    if not funcionario:
+        print(f"O funcionário '{nome_funcionario}' não existe.")
+        return
 
-Funções para excluir esses registros
+    print("Deixe em branco para manter o valor atual.")
+    novo_nome = input(f"Novo nome ({funcionario[1]}): ").title() or funcionario[1]
+    nova_qualidade = input(f"Nova qualidade ({funcionario[2]}): ") or funcionario[2]
 
-Funções para consultar alguns registros
+    # Atualiza o cargo
+    cargo_atual = input("Digite o cargo atual do funcionário: ").title()
+    cursor.execute("SELECT id_cargo FROM cargos WHERE descricao = %s", (cargo_atual,))
+    cargo = cursor.fetchone()
 
-'''
+    if not cargo:
+        print(f"Cargo '{cargo_atual}' não encontrado.")
+        return
+
+    id_cargo = cargo[0]
+
+    # Atualiza a nacionalidade
+    nova_nacionalidade = input("Digite a nova seleção (nacionalidade): ").title()
+    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'selecao'", (nova_nacionalidade,))
+    nacionalidade = cursor.fetchone()
+
+    if not nacionalidade:
+        print(f"Seleção '{nova_nacionalidade}' não encontrada.")
+        return
+
+    id_nacionalidade = nacionalidade[0]
+
+    # Atualiza os dados no banco
+    sql_update = """
+        UPDATE funcionarios
+        SET nome = %s, qualidade = %s, id_cargo = %s, id_nacionalidade = %s
+        WHERE id_funcionario = %s
+    """
+    valores = (novo_nome, nova_qualidade, id_cargo, id_nacionalidade, funcionario[0])
+    cursor.execute(sql_update, valores)
+    conexao.commit()
+    print(f"Funcionário '{nome_funcionario}' atualizado com sucesso!")
+
+def alterar_campeonato(cursor, conexao):
+    """Altera dados de um campeonato na tabela 'campeonatos'."""
+    nome_campeonato = input("Digite o nome do campeonato que deseja alterar: ").title()
+
+    # Verifica se o campeonato existe
+    cursor.execute("SELECT * FROM campeonatos WHERE nome = %s", (nome_campeonato,))
+    campeonato = cursor.fetchone()
+
+    if not campeonato:
+        print(f"O campeonato '{nome_campeonato}' não existe.")
+        return
+
+    print("Deixe em branco para manter o valor atual.")
+    novo_nome = input(f"Novo nome do campeonato ({campeonato[1]}): ").title() or campeonato[1]
+
+    # Atualiza os dados no banco
+    sql_update = "UPDATE campeonatos SET nome = %s WHERE id_campeonato = %s"
+    cursor.execute(sql_update, (novo_nome, campeonato[0]))
+    conexao.commit()
+    print(f"Campeonato '{nome_campeonato}' atualizado com sucesso!")
+
+#Funções excluir
+
+
+def excluir_campeonato(cursor, conexao):
+    """Exclui um campeonato da tabela 'campeonatos'."""
+    nome_campeonato = input("Digite o nome do campeonato que deseja excluir: ").title()
+
+    # Verifica se o campeonato existe
+    cursor.execute("SELECT id_campeonato FROM campeonatos WHERE nome = %s", (nome_campeonato,))
+    campeonato = cursor.fetchone()
+
+    if not campeonato:
+        print(f"O campeonato '{nome_campeonato}' não existe.")
+        return
+
+    # Exclui o campeonato
+    sql_delete = "DELETE FROM campeonatos WHERE id_campeonato = %s"
+    cursor.execute(sql_delete, (campeonato[0],))
+    conexao.commit()
+    print(f"Campeonato '{nome_campeonato}' excluído com sucesso!")
+
+def excluir_funcionario(cursor, conexao):
+    """Exclui um funcionário da tabela 'funcionarios'."""
+    nome_funcionario = input("Digite o nome do funcionário que deseja excluir: ").title()
+
+    # Verifica se o funcionário existe
+    cursor.execute("SELECT id_funcionario FROM funcionarios WHERE nome = %s", (nome_funcionario,))
+    funcionario = cursor.fetchone()
+
+    if not funcionario:
+        print(f"O funcionário '{nome_funcionario}' não existe.")
+        return
+
+    # Exclui o funcionário
+    sql_delete = "DELETE FROM funcionarios WHERE id_funcionario = %s"
+    cursor.execute(sql_delete, (funcionario[0],))
+    conexao.commit()
+    print(f"Funcionário '{nome_funcionario}' excluído com sucesso!")
+
+def excluir_contrato(cursor, conexao):
+    """Exclui um contrato de um jogador."""
+    nome_jogador = input("Digite o nome do jogador cujo contrato deseja excluir: ").title()
+
+    # Verifica se o contrato existe
+    cursor.execute("""
+        SELECT c.id_contrato
+        FROM contratos c
+        JOIN jogadores j ON c.id_jogador = j.id_jogador
+        WHERE j.nome = %s
+    """, (nome_jogador,))
+    contrato = cursor.fetchone()
+
+    if not contrato:
+        print(f"Contrato do jogador '{nome_jogador}' não encontrado.")
+        return
+
+    # Exclui o contrato
+    sql_delete = "DELETE FROM contratos WHERE id_contrato = %s"
+    cursor.execute(sql_delete, (contrato[0],))
+    conexao.commit()
+    print(f"Contrato do jogador '{nome_jogador}' excluído com sucesso!")
+
+def excluir_atributos(cursor, conexao):
+    """Exclui os atributos de um jogador."""
+    nome_jogador = input("Digite o nome do jogador cujos atributos deseja excluir: ").title()
+
+    # Verifica se o jogador existe
+    cursor.execute("SELECT id_jogador FROM jogadores WHERE nome = %s", (nome_jogador,))
+    jogador = cursor.fetchone()
+
+    if not jogador:
+        print(f"O jogador '{nome_jogador}' não existe.")
+        return
+
+    # Exclui os atributos
+    sql_delete = "DELETE FROM atributos WHERE id_jogador = %s"
+    cursor.execute(sql_delete, (jogador[0],))
+    conexao.commit()
+    print(f"Atributos do jogador '{nome_jogador}' excluídos com sucesso!")
+
+def excluir_estilo_de_jogo(cursor, conexao):
+    """Exclui estilos de jogo associados a um jogador."""
+    nome_jogador = input("Digite o nome do jogador cujo estilo de jogo deseja excluir: ").title()
+
+    # Verifica se o jogador existe
+    cursor.execute("SELECT id_jogador FROM jogadores WHERE nome = %s", (nome_jogador,))
+    jogador = cursor.fetchone()
+
+    if not jogador:
+        print(f"O jogador '{nome_jogador}' não existe.")
+        return
+
+    # Exclui os estilos de jogo associados
+    sql_delete = "DELETE FROM estilos_de_jogo_jogadores WHERE id_jogador = %s"
+    cursor.execute(sql_delete, (jogador[0],))
+    conexao.commit()
+    print(f"Estilos de jogo do jogador '{nome_jogador}' excluídos com sucesso!")
+
+def excluir_jogador(cursor, conexao):
+    """Exclui um jogador da tabela 'jogadores'."""
+    nome_jogador = input("Digite o nome do jogador que deseja excluir: ").title()
+
+    # Verifica se o jogador existe
+    cursor.execute("SELECT id_jogador FROM jogadores WHERE nome = %s", (nome_jogador,))
+    jogador = cursor.fetchone()
+
+    if not jogador:
+        print(f"O jogador '{nome_jogador}' não existe.")
+        return
+
+    # Exclui o jogador
+    sql_delete = "DELETE FROM jogadores WHERE id_jogador = %s"
+    cursor.execute(sql_delete, (jogador[0],))
+    conexao.commit()
+    print(f"Jogador '{nome_jogador}' excluído com sucesso!")
+
+def excluir_clube(cursor, conexao):
+    """Exclui um clube da tabela 'associacoes_esportivas' e tabelas relacionadas."""
+    nome_clube = input("Digite o nome do clube que deseja excluir: ").title()
+
+    # Verifica se o clube existe
+    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'clube'", (nome_clube,))
+    clube = cursor.fetchone()
+
+    if not clube:
+        print(f"O clube '{nome_clube}' não existe.")
+        return
+
+    # Exclui o clube
+    sql_delete = "DELETE FROM associacoes_esportivas WHERE id_associacao = %s"
+    cursor.execute(sql_delete, (clube[0],))
+    conexao.commit()
+    print(f"Clube '{nome_clube}' excluído com sucesso!")
+
+def excluir_selecao(cursor, conexao):
+    """Exclui uma seleção e move os jogadores para a seleção 'Passe Livre'."""
+    nome_selecao = input("Digite o nome da seleção que deseja excluir: ").title()
+
+    # Verifica se a seleção existe
+    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'selecao'", (nome_selecao,))
+    selecao = cursor.fetchone()
+
+    if not selecao:
+        print(f"A seleção '{nome_selecao}' não existe.")
+        return
+
+    # Verifica se existem jogadores atrelados à seleção
+    cursor.execute("SELECT id_jogador FROM jogadores WHERE id_selecao = %s", (selecao[0],))
+    jogadores = cursor.fetchall()
+
+    if jogadores:
+        # Se houver jogadores, verifica se a seleção "Passe Livre" existe
+        cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = 'Passe Livre' AND tipo = 'selecao'")
+        passe_livre = cursor.fetchone()
+
+        if not passe_livre:
+            print("Erro: A seleção 'Passe Livre' não existe. Verifique os dados no banco de dados.")
+            return
+
+        # Atualiza os jogadores para a seleção "Passe Livre"
+        cursor.execute("UPDATE jogadores SET id_selecao = %s WHERE id_selecao = %s", (passe_livre[0], selecao[0]))
+        conexao.commit()
+        print(f"Jogadores da seleção '{nome_selecao}' foram transferidos para 'Passe Livre'.")
+    # Exclui a seleção
+    cursor.execute("DELETE FROM associacoes_esportivas WHERE id_associacao = %s", (selecao[0],))
+    conexao.commit()
+    print(f"Seleção '{nome_selecao}' excluída com sucesso!")
+
+#funcao para select
+
+def mostrar_clubes(cursor):
+    """Mostra todos os clubes existentes."""
+    cursor.execute("SELECT nome FROM associacoes_esportivas WHERE tipo = 'clube'")
+    clubes = cursor.fetchall()
+
+    if not clubes:
+        print("Nenhum clube encontrado.")
+    else:
+        print("\n--- Clubes Existentes ---")
+        for clube in clubes:
+            print(f"Nome: {clube[0]}, Sigla: {clube[1]}, Apelido: {clube[2]}")
+
+def mostrar_selecoes(cursor):
+    """Mostra todas as seleções existentes."""
+    cursor.execute("SELECT nome FROM associacoes_esportivas WHERE tipo = 'selecao'")
+    selecoes = cursor.fetchall()
+
+    if not selecoes:
+        print("Nenhuma seleção encontrada.")
+    else:
+        print("\n--- Seleções Existentes ---")
+        for selecao in selecoes:
+            print(f"Nome: {selecao[0]}, Sigla: {selecao[1]}, Apelido: {selecao[2]}")
+
+def mostrar_jogadores(cursor):
+    """Mostra todos os jogadores existentes."""
+    cursor.execute("""
+        SELECT j.nome, j.posicao, a.nome AS selecao
+        FROM jogadores j
+        LEFT JOIN associacoes_esportivas a ON j.id_selecao = a.id_associacao
+    """)
+    jogadores = cursor.fetchall()
+
+    if not jogadores:
+        print("Nenhum jogador encontrado.")
+    else:
+        print("\n--- Jogadores Existentes ---")
+        for jogador in jogadores:
+            print(f"Nome: {jogador[0]}, Posição: {jogador[1]}, Seleção: {jogador[2]}")
+
+def mostrar_jogadores_contrato(cursor):
+    """Mostra todos os jogadores e se possuem contrato com algum clube."""
+    cursor.execute("""
+        SELECT j.nome AS jogador, c.numero AS numero, j.posicao, a.nome AS clube
+        FROM jogadores j
+        LEFT JOIN contratos c ON j.id_jogador = c.id_jogador
+        LEFT JOIN associacoes_esportivas a ON c.id_associacao = a.id_associacao
+    """)
+    jogadores_contrato = cursor.fetchall()
+
+    if not jogadores_contrato:
+        print("Nenhum jogador ou contrato encontrado.")
+    else:
+        print("\n--- Jogadores e Contratos ---")
+        for jogador in jogadores_contrato:
+            if jogador[1] and jogador[2]:
+                print(f"Jogador: {jogador[0]}, Clube: {jogador[2]}, Salário: R${jogador[1]:,.2f}")
+            else:
+                print(f"Jogador: {jogador[0]}, Clube: Sem contrato")
+
+def mostrar_jogadores_geral(cursor):
+    """Retorna o nome do jogador e seu geral da tabela atributos."""
+    # Consulta SQL para buscar o nome do jogador e o atributo 'geral'
+    cursor.execute("""
+        SELECT j.nome, a.geral
+        FROM jogadores j
+        JOIN atributos a ON j.id_jogador = a.id_jogador
+    """)
+
+    jogadores_geral = cursor.fetchall()
+
+    if not jogadores_geral:
+        print("Nenhum jogador encontrado ou sem dados de atributos.")
+    else:
+        print("\n--- Jogadores e seus Atributos Gerais ---")
+        for jogador in jogadores_geral:
+            print(f"Jogador: {jogador[0]}, Geral: {jogador[1]}")
+
+def mostrar_jogadores_estilos(cursor):
+    """Mostra todos os jogadores e seus estilos de jogo, mesmo que um jogador tenha múltiplos estilos."""
+    # Consulta SQL para buscar jogadores e seus estilos de jogo
+    cursor.execute("""
+        SELECT j.nome, ej.estilo_de_jogo
+        FROM jogadores j
+        LEFT JOIN estilos_de_jogo ej ON j.id_jogador = ej.id_jogador
+    """)
+
+    jogadores_estilos = cursor.fetchall()
+
+    if not jogadores_estilos:
+        print("Nenhum jogador encontrado ou sem estilos de jogo associados.")
+    else:
+        print("\n--- Jogadores e seus Estilos de Jogo ---")
+        # Armazenar o nome do jogador para evitar repetições ao exibir múltiplos estilos
+        jogadores_exibidos = set()
+
+        for jogador in jogadores_estilos:
+            nome_jogador, estilo_jogo = jogador
+            if nome_jogador not in jogadores_exibidos:
+                print(f"\nJogador: {nome_jogador}")
+                jogadores_exibidos.add(nome_jogador)
+            print(f"  Estilo de Jogo: {estilo_jogo}")
+
+def mostrar_funcionarios(cursor):
+    """Mostra todos os funcionários registrados no banco."""
+    cursor.execute("SELECT f.nome, f.cargo FROM funcionarios f")
+    funcionarios = cursor.fetchall()
+
+    if not funcionarios:
+        print("Nenhum funcionário encontrado.")
+    else:
+        print("\n--- Funcionários ---")
+        for funcionario in funcionarios:
+            print(f"Nome: {funcionario[0]}, Cargo: {funcionario[1]}")
+
+def mostrar_estadios_e_clubes(cursor):
+    """Mostra todos os estádios e seus respectivos clubes, caso existam."""
+    cursor.execute("""
+        SELECT e.nome, c.nome
+        FROM estadios e
+        LEFT JOIN clubes c ON e.id_clube = c.id_associacao
+    """)
+    estadios_clubes = cursor.fetchall()
+
+    if not estadios_clubes:
+        print("Nenhum estádio encontrado ou sem clube associado.")
+    else:
+        print("\n--- Estádios e seus Clubes ---")
+        for estadio in estadios_clubes:
+            estadio_nome, clube_nome = estadio
+            if clube_nome:
+                print(f"Estádio: {estadio_nome}, Clube: {clube_nome}")
+            else:
+                print(f"Estádio: {estadio_nome}, Clube: Nenhum")
+
+def mostrar_campeonatos(cursor):
+    """Mostra todos os campeonatos registrados no banco."""
+    cursor.execute("SELECT nome, tipo FROM campeonatos")
+    campeonatos = cursor.fetchall()
+
+    if not campeonatos:
+        print("Nenhum campeonato encontrado.")
+    else:
+        print("\n--- Campeonatos ---")
+        for campeonato in campeonatos:
+            print(f"Nome: {campeonato[0]}, Tipo: {campeonato[1]}")
+
+def mostrar_estatisticas(cursor):
+    """Mostra todas as estatísticas, incluindo nome do campeonato e nome do jogador."""
+    cursor.execute("""
+        SELECT e.nome AS campeonato, j.nome AS jogador, es.estatistica
+        FROM estatisticas es
+        JOIN campeonatos e ON es.id_campeonato = e.id_campeonato
+        JOIN jogadores j ON es.id_jogador = j.id_jogador
+    """)
+    estatisticas = cursor.fetchall()
+
+    if not estatisticas:
+        print("Nenhuma estatística encontrada.")
+    else:
+        print("\n--- Estatísticas ---")
+        for estatistica in estatisticas:
+            print(f"Campeonato: {estatistica[0]}, Jogador: {estatistica[1]}, Estatística: {estatistica[2]}")
 
 def menu():
-    """Exibe o menu interativo"""
+    """Menu principal com categorias organizadas"""
     while True:
-        print("\nMENU:")
-        print("1 - Inserir Clube")
-        print("2 - Inserir Selecao")
-        print("3 - Inserir Jogador")
-        print("4 - Inserir Estadio")
-        print("5 - Inserir Estadio a um clube")
-        print("6 - Inserir Campeonato")
-        print("7 - Inserir Associacao a um Campeonato")
-        print("8 - Inserir Partidas a um Campeonato")
-        print("9 - Inserir Atributos")
-        print("10 - Inserir Contratos")
-        print("11 - Inserir Estilo de jogo")
-        print("12 - Inserir Funcionario ")
-        print("13 - Inserir Estatisticas")
-        print("14 - Alterar Clube ")
-        print("15 - Alterar Selecao ")
-        print("16 - Alterar Jogador ")
-        print("17 - Alterar Estadio a um clube ")
-        print("18 - Alterar Contrato")
-        print("19 - Alterar Atributos")
-        print("20 - Alterar Estilo de jogo")
+        print("\nMENU PRINCIPAL:")
+        print("1 - Inserir")
+        print("2 - Alterar")
+        print("3 - Deletar")
+        print("4 - Mostrar")
+        print("5 - Fluxo Geral (Automatizado)")
         print("X - SAIR")
 
-        escolha = input("Escolha a opção: ")
+        escolha = input("Escolha uma categoria: ").strip().upper()
 
         conexao = conectar_banco()
         if conexao:
             cursor = conexao.cursor()
 
             if escolha == "1":
-                # Inserir clube
-                id_associacao_inserido = inserir_associacao(cursor, tipo="clube")
-                inserir_clube(cursor, id_associacao_inserido, conexao)
-                
+                menu_inserir()
             elif escolha == "2":
-                # Inserir seleção
-                id_associacao_inserido = inserir_associacao(cursor, tipo="selecao")
-                inserir_selecao(cursor, id_associacao_inserido)
-
+                menu_alterar()
             elif escolha == "3":
-                # Inserir jogador
-                inserir_jogador(cursor)
-
+                menu_excluir()
             elif escolha == "4":
-                # Inserir estadio
-                nome_estadio = input("Digite o nome do estadio: ").title()
-                inserir_estadio(cursor, nome_estadio)
-
+                menu_select()
             elif escolha == "5":
-                # Atrelar estadio a um clube
-                inserir_estadio_a_clube(cursor, conexao)
-
-            elif escolha == "6":
-                #Criar campeonato dale Vasco
-                inserir_campeonato(cursor, conexao)
-
-            elif escolha == "7":
-                nome_campeonato = input("Digite o nome do campeonato ao qual deseja adicionar associações: ").title()
-                inserir_associacoes_campeonato(cursor, conexao, nome_campeonato)
-
-            elif escolha == "8":
-                nome_campeonato = input("Digite o nome do campeonato para adicionar partidas: ").title()
-                inserir_partidas_campeonato(cursor, conexao, nome_campeonato)
-            
-            elif escolha == "9":
-                inserir_atributos(cursor)
-            
-            elif escolha == "10":
-                inserir_contrato(cursor)
-            
-            elif escolha == "11":
-                inserir_estilo_de_jogo(cursor)
-
-            elif escolha == "12":
-                inserir_funcionario(cursor, conexao)
-            
-            elif escolha == "13":
-                inserir_estatisticas(cursor, conexao)
-
-            elif escolha == "14":
-                alterar_clube(cursor, conexao)
-
-            elif escolha == "15":
-                alterar_selecao(cursor, conexao)
-
-            elif escolha == "16":
-                alterar_jogador(cursor, conexao)
-
-            elif escolha == "17":
-                alterar_estadio(cursor, conexao)
-
-            elif escolha == "18":
-                alterar_contrato(cursor, conexao)
-
-            elif escolha == "19":
-                alterar_atributos(cursor, conexao)
-            
-            elif escolha == "20":
-                alterar_estilo_de_jogo(cursor, conexao)
-
+                fluxo_geral(cursor, conexao)
             else:
-                print("Saindo do programa...")
+                print("Saindo...")
                 break
 
-            conexao.commit()  # Confirma todas as alterações no banco
             cursor.close()
             conexao.close()
+
+
+def menu_inserir():
+    """Submenu para opções de inserir"""
+    while True:
+        print("\nMENU INSERIR:")
+        print("1 - Inserir Clube")
+        print("2 - Inserir Selecao")
+        print("3 - Inserir Jogador")
+        print("4 - Inserir Estadio")
+        print("5 - Inserir Estadio a um Clube")
+        print("6 - Inserir Campeonato")
+        print("7 - Inserir Associacao a um Campeonato")
+        print("8 - Inserir Partidas a um Campeonato")
+        print("9 - Inserir Atributos")
+        print("10 - Inserir Contratos")
+        print("11 - Inserir Estilo de Jogo")
+        print("12 - Inserir Funcionario")
+        print("13 - Inserir Estatisticas")
+        print("X - Voltar ao Menu Principal")
+
+        escolha = input("Escolha uma opção: ").strip().upper()
+
+        conexao = conectar_banco()
+        if conexao:
+            cursor = conexao.cursor()
+
+            if escolha == "1":
+                id_associacao_inserido = inserir_associacao(cursor, tipo="clube")
+                inserir_clube(cursor, id_associacao_inserido, conexao)
+            elif escolha == "2":
+                id_associacao_inserido = inserir_associacao(cursor, tipo="selecao")
+                inserir_selecao(cursor, id_associacao_inserido)
+            elif escolha == "3":
+                inserir_jogador(cursor)
+            elif escolha == "4":
+                nome_estadio = input("Digite o nome do estadio: ").title()
+                inserir_estadio(cursor, nome_estadio)
+            elif escolha == "5":
+                inserir_estadio_a_clube(cursor, conexao)
+            elif escolha == "6":
+                inserir_campeonato(cursor, conexao)
+            elif escolha == "7":
+                nome_campeonato = input("Digite o nome do campeonato: ").title()
+                inserir_associacoes_campeonato(cursor, conexao, nome_campeonato)
+            elif escolha == "8":
+                nome_campeonato = input("Digite o nome do campeonato: ").title()
+                inserir_partidas_campeonato(cursor, conexao, nome_campeonato)
+            elif escolha == "9":
+                inserir_atributos(cursor)
+            elif escolha == "10":
+                inserir_contrato(cursor)
+            elif escolha == "11":
+                inserir_estilo_de_jogo(cursor)
+            elif escolha == "12":
+                inserir_funcionario(cursor, conexao)
+            elif escolha == "13":
+                inserir_estatisticas(cursor, conexao)
+            else:
+                break
+
+            conexao.commit()
+            cursor.close()
+            conexao.close()
+
+def menu_alterar():
+    """Submenu para opções de alterar"""
+    while True:
+        print("\nMENU ALTERAR:")
+        print("1 - Alterar Clube")
+        print("2 - Alterar Selecao")
+        print("3 - Alterar Jogador")
+        print("4 - Alterar Estadio a um Clube")
+        print("5 - Alterar Contrato")
+        print("6 - Alterar Atributos")
+        print("7 - Alterar Estilo de Jogo")
+        print("8 - Alterar Funcionario")
+        print("9 - Alterar Campeonato")
+        print("X - Voltar ao Menu Principal")
+
+        escolha = input("Escolha uma opção: ").strip().upper()
+
+        conexao = conectar_banco()
+        if conexao:
+            cursor = conexao.cursor()
+
+            if escolha == "1":
+                alterar_clube(cursor, conexao)
+            elif escolha == "2":
+                alterar_selecao(cursor, conexao)
+            elif escolha == "3":
+                alterar_jogador(cursor, conexao)
+            elif escolha == "4":
+                alterar_estadio(cursor, conexao)
+            elif escolha == "5":
+                alterar_contrato(cursor, conexao)
+            elif escolha == "6":
+                alterar_atributos(cursor, conexao)
+            elif escolha == "7":
+                alterar_estilo_de_jogo(cursor, conexao)
+            elif escolha == "8":
+                alterar_funcionario(cursor, conexao)
+            elif escolha == "9":
+                alterar_campeonato(cursor, conexao)
+            else:
+                break
+
+            conexao.commit()
+            cursor.close()
+            conexao.close()
+
+def menu_excluir():
+    """Submenu para opções de excluir"""
+    while True:
+        print("\nMENU EXCLUIR:")
+        print("1 - Excluir Campeonato")
+        print("2 - Excluir Funcionario")
+        print("3 - Excluir Contrato")
+        print("4 - Excluir Atributos")
+        print("5 - Excluir Estilo de Jogo")
+        print("6 - Excluir Jogador")
+        print("7 - Excluir Clube")
+        print("8 - Excluir Selecao")
+        print("X - Voltar ao Menu Principal")
+
+        escolha = input("Escolha uma opção: ").strip().upper()
+
+        conexao = conectar_banco()
+        if conexao:
+            cursor = conexao.cursor()
+
+            if escolha == "1":
+                excluir_campeonato(cursor, conexao)
+            elif escolha == "2":
+                excluir_funcionario(cursor, conexao)
+            elif escolha == "3":
+                excluir_contrato(cursor, conexao)
+            elif escolha == "4":
+                excluir_atributos(cursor, conexao)
+            elif escolha == "5":
+                excluir_estilo_de_jogo(cursor, conexao)
+            elif escolha == "6":
+                excluir_jogador(cursor, conexao)
+            elif escolha == "7":
+                excluir_clube(cursor, conexao)
+            elif escolha == "8":
+                excluir_selecao(cursor, conexao)
+            else:
+                break
+
+            conexao.commit()
+            cursor.close()
+            conexao.close()
+
+def menu_select():
+    """Submenu para opções de inserir"""
+    while True:
+        print("\nMENU INSERIR:")
+        print("1 - Consultar Clubes")
+        #colocar o resto dos selects
+
+        escolha = input("Escolha uma opção: ").strip().upper()
+
+        conexao = conectar_banco()
+        if conexao:
+            cursor = conexao.cursor()
+
+            if escolha == "1":
+                mostrar_clubes(cursor)
+            if escolha == "2":
+                mostrar_selecoes(cursor)
+            if escolha == "3":
+                mostrar_jogadores(cursor)
+            if escolha == "4":
+                mostrar_jogadores_contrato(cursor)
+            if escolha == "5":
+                mostrar_jogadores_geral(cursor)
+            if escolha == "6":
+                mostrar_jogadores_estilos(cursor)
+            if escolha == "7":
+                mostrar_funcionarios(cursor)
+            if escolha == "8":
+                mostrar_estadios_e_clubes(cursor)
+            if escolha == "9":
+                mostrar_campeonatos(cursor)
+            if escolha == "10":
+                mostrar_estatisticas(cursor)
+            else:
+                break
+
+            conexao.commit()
+            cursor.close()
+            conexao.close()
+
+def fluxo_geral(cursor, conexao):
+    """Realiza um fluxo geral de operações: criar clube, jogador, estádio, contrato, atributos, estilos de jogo, campeonato e estatísticas."""
+
+    print("\n--- Iniciando o fluxo geral ---")
+
+    # 1. Criar um clube
+    print("\nCriando um clube:")
+    id_clube = inserir_associacao(cursor, tipo="clube")
+    inserir_clube(cursor, id_clube, conexao)
+
+    # 2. Criar um jogador
+    print("\nCriando um jogador:")
+    inserir_jogador(cursor)
+
+    # 3. Atrelar um estádio ao clube
+    print("\nAtrelando um estádio ao clube:")
+    inserir_estadio_a_clube(cursor, conexao)
+
+    # 4. Criar um contrato para o jogador
+    print("\nCriando um contrato para o jogador:")
+    inserir_contrato(cursor)
+
+    # 5. Criar atributos para o jogador
+    print("\nCriando atributos para o jogador:")
+    inserir_atributos(cursor)
+
+    # 6. Criar estilos de jogo e associar ao jogador
+    while True:
+        adicionar_estilo = input("\nDeseja adicionar um estilo de jogo ao jogador? (s/n): ").strip().lower()
+        if adicionar_estilo == 's':
+            inserir_estilo_de_jogo(cursor)
+        elif adicionar_estilo == 'n':
+            print("Continuando para o próximo passo...")
+            break
+        else:
+            print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
+
+    # 7. Criar um campeonato
+    print("\nCriando um campeonato:")
+    inserir_campeonato(cursor, conexao)
+
+    # 8. Inserir estatísticas para o jogador no campeonato
+    print("\nInserindo estatísticas para o jogador no campeonato:")
+    inserir_estatisticas(cursor, conexao)
+
+    print("\n--- Fluxo geral concluído com sucesso! ---")
+
+
 #wasd
 if __name__ == "__main__":
     menu() 
