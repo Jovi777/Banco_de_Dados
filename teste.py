@@ -7,7 +7,7 @@ def conectar_banco():
         conexao = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='udesc',
+            password='1826',
             database='trabalho'
         )
         if conexao.is_connected():
@@ -1197,77 +1197,6 @@ def alterar_estilo_de_jogo(cursor, conexao):
 def alterar_funcionario(cursor, conexao):
     """Altera dados de um funcionário na tabela 'funcionarios'."""
     nome_funcionario = input("Digite o nome do funcionário que deseja alterar: ").title()
-<<<<<<< HEAD
-=======
-
-    # Verifica se o funcionário existe
-    cursor.execute("SELECT * FROM funcionarios WHERE nome = %s", (nome_funcionario,))
-    funcionario = cursor.fetchone()
-
-    if not funcionario:
-        print(f"O funcionário '{nome_funcionario}' não existe.")
-        return
-
-    print("Deixe em branco para manter o valor atual.")
-    novo_nome = input(f"Novo nome ({funcionario[1]}): ").title() or funcionario[1]
-    nova_qualidade = input(f"Nova qualidade ({funcionario[2]}): ") or funcionario[2]
-
-    # Atualiza o cargo
-    cargo_atual = input("Digite o cargo atual do funcionário: ").title()
-    cursor.execute("SELECT id_cargo FROM cargos WHERE descricao = %s", (cargo_atual,))
-    cargo = cursor.fetchone()
-
-    if not cargo:
-        print(f"Cargo '{cargo_atual}' não encontrado.")
-        return
-
-    id_cargo = cargo[0]
-
-    # Atualiza a nacionalidade
-    nova_nacionalidade = input("Digite a nova seleção (nacionalidade): ").title()
-    cursor.execute("SELECT id_associacao FROM associacoes_esportivas WHERE nome = %s AND tipo = 'selecao'", (nova_nacionalidade,))
-    nacionalidade = cursor.fetchone()
-
-    if not nacionalidade:
-        print(f"Seleção '{nova_nacionalidade}' não encontrada.")
-        return
-
-    id_nacionalidade = nacionalidade[0]
-
-    # Atualiza os dados no banco
-    sql_update = """
-        UPDATE funcionarios
-        SET nome = %s, qualidade = %s, id_cargo = %s, id_nacionalidade = %s
-        WHERE id_funcionario = %s
-    """
-    valores = (novo_nome, nova_qualidade, id_cargo, id_nacionalidade, funcionario[0])
-    cursor.execute(sql_update, valores)
-    conexao.commit()
-    print(f"Funcionário '{nome_funcionario}' atualizado com sucesso!")
-
-def alterar_campeonato(cursor, conexao):
-    """Altera dados de um campeonato na tabela 'campeonatos'."""
-    nome_campeonato = input("Digite o nome do campeonato que deseja alterar: ").title()
-
-    # Verifica se o campeonato existe
-    cursor.execute("SELECT * FROM campeonatos WHERE nome = %s", (nome_campeonato,))
-    campeonato = cursor.fetchone()
-
-    if not campeonato:
-        print(f"O campeonato '{nome_campeonato}' não existe.")
-        return
-
-    print("Deixe em branco para manter o valor atual.")
-    novo_nome = input(f"Novo nome do campeonato ({campeonato[1]}): ").title() or campeonato[1]
-
-    # Atualiza os dados no banco
-    sql_update = "UPDATE campeonatos SET nome = %s WHERE id_campeonato = %s"
-    cursor.execute(sql_update, (novo_nome, campeonato[0]))
-    conexao.commit()
-    print(f"Campeonato '{nome_campeonato}' atualizado com sucesso!")
-
->>>>>>> b91c78fe6b821468d594f10e4c55befff6fbb960
-
     # Verifica se o funcionário existe
     cursor.execute("SELECT * FROM funcionarios WHERE nome = %s", (nome_funcionario,))
     funcionario = cursor.fetchone()
@@ -1671,38 +1600,12 @@ def mostrar_estatisticas(cursor):
 def menu():
     """Menu principal com categorias organizadas"""
     while True:
-<<<<<<< HEAD
         print("\nMENU PRINCIPAL:")
         print("1 - Inserir")
         print("2 - Alterar")
         print("3 - Deletar")
         print("4 - Mostrar")
         print("5 - Fluxo Geral (Automatizado)")
-=======
-        print("\nMENU:")
-        print("1 - Inserir Clube")
-        print("2 - Inserir Selecao")
-        print("3 - Inserir Jogador")
-        print("4 - Inserir Estadio")
-        print("5 - Inserir Estadio a um clube")
-        print("6 - Inserir Campeonato")
-        print("7 - Inserir Associacao a um Campeonato")
-        print("8 - Inserir Partidas a um Campeonato")
-        print("9 - Inserir Atributos")
-        print("10 - Inserir Contratos")
-        print("11 - Inserir Estilo de jogo")
-        print("12 - Inserir Funcionario ")
-        print("13 - Inserir Estatisticas")
-        print("14 - Alterar Clube ")
-        print("15 - Alterar Selecao ")
-        print("16 - Alterar Jogador ")
-        print("17 - Alterar Estadio a um clube ")
-        print("18 - Alterar Contrato")
-        print("19 - Alterar Atributos")
-        print("20 - Alterar Estilo de jogo")
-        print("21 - Alterar Funcionario")
-        print("22 - Alterar Campeonato")
->>>>>>> b91c78fe6b821468d594f10e4c55befff6fbb960
         print("X - SAIR")
 
         escolha = input("Escolha uma categoria: ").strip().upper()
@@ -1720,67 +1623,7 @@ def menu():
             elif escolha == "4":
                 menu_select()
             elif escolha == "5":
-<<<<<<< HEAD
                 fluxo_geral(cursor, conexao)
-=======
-                # Atrelar estadio a um clube
-                inserir_estadio_a_clube(cursor, conexao)
-
-            elif escolha == "6":
-                #Criar campeonato dale Vasco
-                inserir_campeonato(cursor, conexao)
-
-            elif escolha == "7":
-                nome_campeonato = input("Digite o nome do campeonato ao qual deseja adicionar associações: ").title()
-                inserir_associacoes_campeonato(cursor, conexao, nome_campeonato)
-
-            elif escolha == "8":
-                nome_campeonato = input("Digite o nome do campeonato para adicionar partidas: ").title()
-                inserir_partidas_campeonato(cursor, conexao, nome_campeonato)
-            
-            elif escolha == "9":
-                inserir_atributos(cursor)
-            
-            elif escolha == "10":
-                inserir_contrato(cursor)
-            
-            elif escolha == "11":
-                inserir_estilo_de_jogo(cursor)
-
-            elif escolha == "12":
-                inserir_funcionario(cursor, conexao)
-            
-            elif escolha == "13":
-                inserir_estatisticas(cursor, conexao)
-
-            elif escolha == "14":
-                alterar_clube(cursor, conexao)
-
-            elif escolha == "15":
-                alterar_selecao(cursor, conexao)
-
-            elif escolha == "16":
-                alterar_jogador(cursor, conexao)
-
-            elif escolha == "17":
-                alterar_estadio(cursor, conexao)
-
-            elif escolha == "18":
-                alterar_contrato(cursor, conexao)
-
-            elif escolha == "19":
-                alterar_atributos(cursor, conexao)
-            
-            elif escolha == "20":
-                alterar_estilo_de_jogo(cursor, conexao)
-
-            elif escolha == "21":
-                alterar_funcionario(cursor, conexao)
-            
-            elif escolha == "22":
-                alterar_campeonato(cursor, conexao)
-
->>>>>>> b91c78fe6b821468d594f10e4c55befff6fbb960
             else:
                 print("Saindo...")
                 break
