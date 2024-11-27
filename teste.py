@@ -1,5 +1,234 @@
+from tabulate import tabulate
+#pip install tabulate
 import mysql.connector
 from mysql.connector import Error
+#testes:
+def inserir_atributos(cursor):
+    """Insere os atributos de um jogador no banco de dados com verificação de intervalo (0-100), buscando ID e posição do jogador no banco."""
+    
+    # Pergunta o nome do jogador
+    nome_jogador = input("Digite o nome do jogador: ").strip()
+
+    # Consulta o ID e a posição do jogador a partir do nome
+    cursor.execute("SELECT id_jogador, posicao FROM jogadores WHERE nome = %s", (nome_jogador,))
+    jogador = cursor.fetchone()
+
+    if not jogador:
+        print("Jogador não encontrado!")
+        return
+
+    id_jogador, posicao = jogador
+    posicao = posicao.strip().upper()  # Garante que a posição seja em maiúsculas
+
+    def pedir_atributo(nome_atributo):
+        """Função auxiliar para pedir atributos e verificar se estão entre 0 e 100."""
+        while True:
+            try:
+                valor = float(input(f"Digite o atributo de {nome_atributo} (0-100): "))
+                if 0 <= valor <= 100:
+                    return valor
+                else:
+                    print("Valor inválido! O valor deve estar entre 0 e 100.")
+            except ValueError:
+                print("Valor inválido! Por favor, insira um número válido.")
+
+    # Se o jogador for goleiro, mudamos os nomes dos atributos
+    if posicao == "GOL":
+        print("\nAtributos para Goleiro:")
+        ritmo = pedir_atributo("elasticidade")
+        chute = pedir_atributo("manuseio") 
+        passe = pedir_atributo("chute") 
+        drible = pedir_atributo("reflexos")
+        defesa = pedir_atributo("velocidade")  
+        fisico = pedir_atributo("posicionamento") 
+    else:
+        # Para outras posições, mantemos os nomes originais dos atributos
+        print("\nAtributos para Jogador de Campo:")
+        ritmo = pedir_atributo("ritmo")
+        chute = pedir_atributo("chute")
+        passe = pedir_atributo("passe")
+        drible = pedir_atributo("drible")
+        defesa = pedir_atributo("defesa")
+        fisico = pedir_atributo("físico")
+
+    # Insere os atributos na tabela atributos
+    cursor.execute("""
+        INSERT INTO atributos (id_jogador, ritmo, chute, passe, drible, defesa, fisico)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (id_jogador, ritmo, chute, passe, drible, defesa, fisico))
+
+    print("Atributos inseridos com sucesso!")
+
+    # Atualiza o geral após a inserção dos atributos
+    atualizar_geral(cursor, id_jogador, posicao)
+
+def alterar_atributos(cursor):
+    """Atualiza os atributos de um jogador no banco de dados com verificação de intervalo (0-100), buscando ID e posição do jogador no banco."""
+    
+    # Pergunta o nome do jogador
+    nome_jogador = input("Digite o nome do jogador para atualizar os atributos: ").strip()
+
+    # Consulta o ID e a posição do jogador a partir do nome
+    cursor.execute("SELECT id_jogador, posicao FROM jogadores WHERE nome = %s", (nome_jogador,))
+    jogador = cursor.fetchone()
+
+    if not jogador:
+        print("Jogador não encontrado!")
+        return
+
+    id_jogador, posicao = jogador
+    posicao = posicao.strip().upper()  # Garante que a posição seja em maiúsculas
+
+    def pedir_atributo(nome_atributo):
+        """Função auxiliar para pedir atributos e verificar se estão entre 0 e 100."""
+        while True:
+            try:
+                valor = float(input(f"Digite o novo atributo de {nome_atributo} (0-100): "))
+                if 0 <= valor <= 100:
+                    return valor
+                else:
+                    print("Valor inválido! O valor deve estar entre 0 e 100.")
+            except ValueError:
+                print("Valor inválido! Por favor, insira um número válido.")
+
+    # Se o jogador for goleiro, mudamos os nomes dos atributos
+    if posicao == "GOL":
+        print("\nAtributos para Goleiro:")
+        ritmo = pedir_atributo("elasticidade")
+        chute = pedir_atributo("manuseio") 
+        passe = pedir_atributo("chute")  
+        drible = pedir_atributo("reflexos")
+        defesa = pedir_atributo("velocidade") 
+        fisico = pedir_atributo("posicionamento")
+    else:
+        # Para outras posições, mantemos os nomes originais dos atributos
+        print("\nAtributos para Jogador de Campo:")
+        ritmo = pedir_atributo("ritmo")
+        chute = pedir_atributo("chute")
+        passe = pedir_atributo("passe")
+        drible = pedir_atributo("drible")
+        defesa = pedir_atributo("defesa")
+        fisico = pedir_atributo("físico")
+
+    # Atualiza os atributos no banco de dados
+    cursor.execute("""
+        UPDATE atributos
+        SET ritmo = %s, chute = %s, passe = %s, drible = %s, defesa = %s, fisico = %s
+        WHERE id_jogador = %s
+    """, (ritmo, chute, passe, drible, defesa, fisico, id_jogador))
+
+    print("Atributos atualizados com sucesso!")
+
+    # Recalcular e atualizar o valor 'geral' após atualização
+    atualizar_geral(cursor, id_jogador, posicao)
+
+def atualizar_geral(cursor, id_jogador, posicao):
+    """Calcula e atualiza o valor 'geral' do jogador no banco de dados."""
+    
+    geral = calcular_geral(cursor, id_jogador, posicao)
+    
+    if geral is not None:
+        geral = round(geral)
+        cursor.execute("""
+            UPDATE atributos
+            SET geral = %s
+            WHERE id_jogador = %s
+        """, (geral, id_jogador))
+        print(f"Geral do jogador atualizado para {geral}.")
+
+def calcular_geral(cursor, id_jogador, posicao):
+    """Calcula o valor geral do jogador com base em seus atributos e posição."""
+    
+    # Primeiro, buscamos os atributos do jogador
+    cursor.execute("""
+        SELECT drible, ritmo, fisico, passe, chute, defesa
+        FROM atributos
+        WHERE id_jogador = %s
+    """, (id_jogador,))
+    atributos = cursor.fetchone()
+    
+    if not atributos:
+        print("Atributos não encontrados para o jogador.")
+        return None
+    
+    drible, ritmo, fisico, passe, chute, defesa = map(float, atributos)
+    
+    # Atribuindo pesos para cada posição
+    if posicao in ['ATA', 'SA']:  # Atacantes
+        peso_ritmo = 1.2
+        peso_chute = 1.7
+        peso_fisico = 1.5
+        peso_defesa = 0.1
+        peso_passe = 1.0
+        peso_drible = 1.0
+
+    elif posicao in ['PE', 'PD', 'ME', 'MD']:  # Pontas
+        peso_ritmo = 1.5
+        peso_chute = 1.0
+        peso_fisico = 1.0
+        peso_defesa = 0.5
+        peso_passe = 1.0
+        peso_drible = 1.5
+
+    elif posicao in ['MEI']:  # Meias ofensivo
+        peso_ritmo = 1.0
+        peso_chute = 1.0
+        peso_fisico = 1.0
+        peso_defesa = 0.5
+        peso_passe = 1.5
+        peso_drible = 1.5
+    
+    elif posicao in ['MC']:  # Meias
+        peso_ritmo = 1.0
+        peso_chute = 1.0
+        peso_fisico = 1.0
+        peso_defesa = 0.7
+        peso_passe = 1.5
+        peso_drible = 1.3
+    
+    elif posicao in ['VOL']:  # Volantes
+        peso_ritmo = 1.0
+        peso_chute = 0.8
+        peso_fisico = 1.0
+        peso_defesa = 1.5
+        peso_passe = 1.2
+        peso_drible = 0.5
+    
+    elif posicao in ['LE', 'LD', 'ADE', 'ADD']:  # Laterais
+        peso_ritmo = 1.2
+        peso_chute = 0.5
+        peso_fisico = 1.0
+        peso_defesa = 1.5
+        peso_passe = 1.3
+        peso_drible = 1.0
+    
+    elif posicao in ['ZAG']:  # zagueiros
+        peso_ritmo = 0.5
+        peso_chute = 0.2
+        peso_passe = 0.5
+        peso_drible = 0.5
+        peso_defesa = 2.8
+        peso_fisico = 2.0
+    
+    elif posicao in ['GOL']:  # goleiros
+        peso_ritmo = 1.2
+        peso_chute = 1.5
+        peso_passe = 0.5
+        peso_drible = 1.5
+        peso_defesa = 0.5
+        peso_fisico = 1.3
+
+    # Calculando o "geral" ponderado
+    geral = (
+        (drible * peso_drible) +
+        (ritmo * peso_ritmo) +
+        (fisico * peso_fisico) +
+        (passe * peso_passe) +
+        (chute * peso_chute) +
+        (defesa * peso_defesa)
+    ) / ((peso_passe + peso_ritmo + peso_chute + peso_fisico + peso_defesa + peso_drible)-0.5)
+
+    return round(geral)
 
 # Usado para conectar ao banco de dados
 def conectar_banco(): 
@@ -417,6 +646,7 @@ def inserir_contrato(cursor):
     cursor.execute(sql_contrato, valores_contrato)
     print(f"Contrato de jogador '{nome_jogador}' inserido com sucesso!")
 
+'''
 def inserir_atributos(cursor):
     """Função para inserir atributos de um jogador"""
     
@@ -521,7 +751,7 @@ def inserir_atributos(cursor):
 
     # Executa o comando de inserção
     cursor.execute(sql_atributos, valores_atributos)
-    print(f"Atributos do jogador '{nome_jogador}' inseridos com sucesso!")
+    print(f"Atributos do jogador '{nome_jogador}' inseridos com sucesso!")'''
 
 def inserir_estilo_de_jogo(cursor):
     """Função para associar um estilo de jogo a um jogador"""
@@ -1045,6 +1275,7 @@ def alterar_contrato(cursor, conexao):
 
     print(f"Contrato do jogador '{nome_jogador}' atualizado com sucesso!")
 
+'''
 def alterar_atributos(cursor, conexao):
     """Função para alterar os atributos de um jogador"""
     
@@ -1112,7 +1343,7 @@ def alterar_atributos(cursor, conexao):
     cursor.execute(sql_update_atributos, valores_atributos)
     conexao.commit()
     
-    print(f"Atributos do jogador '{nome_jogador}' atualizados com sucesso!")
+    print(f"Atributos do jogador '{nome_jogador}' atualizados com sucesso!")'''
 
 def alterar_estilo_de_jogo(cursor, conexao):
     """Função para alterar o estilo de jogo de um jogador"""
@@ -1264,7 +1495,6 @@ def alterar_campeonato(cursor, conexao):
     print(f"Campeonato '{nome_campeonato}' atualizado com sucesso!")
 
 #Funções excluir
-
 
 def excluir_campeonato(cursor, conexao):
     """Exclui um campeonato da tabela 'campeonatos'."""
@@ -1434,168 +1664,269 @@ def excluir_selecao(cursor, conexao):
 #funcao para select
 
 def mostrar_clubes(cursor):
-    """Mostra todos os clubes existentes."""
-    cursor.execute("SELECT nome FROM associacoes_esportivas WHERE tipo = 'clube'")
-    clubes = cursor.fetchall()
+    """Mostra todos os clubes existentes com exibição formatada."""
+    try:
+        cursor.execute("SELECT nome, sigla, apelido, formacao FROM associacoes_esportivas WHERE tipo = 'clube'")
+        clubes = cursor.fetchall()
 
-    if not clubes:
-        print("Nenhum clube encontrado.")
-    else:
-        print("\n--- Clubes Existentes ---")
-        for clube in clubes:
-            print(f"Nome: {clube[0]}, Sigla: {clube[1]}, Apelido: {clube[2]}")
+        if not clubes:
+            print("Nenhum clube encontrado.")
+        else:
+            print("\n--- Clubes Existentes ---")
+            # Criação da tabela com tabulate
+            tabela = tabulate(clubes, headers=["Nome", "Sigla", "Apelido", "Formacao"], tablefmt="grid")
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar clubes: {e}")
 
 def mostrar_selecoes(cursor):
-    """Mostra todas as seleções existentes."""
-    cursor.execute("SELECT nome FROM associacoes_esportivas WHERE tipo = 'selecao'")
-    selecoes = cursor.fetchall()
+    """Mostra todas as seleções existentes com exibição formatada."""
+    try:
+        cursor.execute("SELECT nome, sigla, apelido, formacao FROM associacoes_esportivas WHERE tipo = 'selecao'")
+        selecoes = cursor.fetchall()
 
-    if not selecoes:
-        print("Nenhuma seleção encontrada.")
-    else:
-        print("\n--- Seleções Existentes ---")
-        for selecao in selecoes:
-            print(f"Nome: {selecao[0]}, Sigla: {selecao[1]}, Apelido: {selecao[2]}")
+        if not selecoes:
+            print("Nenhuma seleção encontrada.")
+        else:
+            print("\n--- Seleções Existentes ---")
+            # Criação da tabela com tabulate
+            tabela = tabulate(selecoes, headers=["Nome", "Sigla", "Apelido", "formacao"], tablefmt="grid")
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar seleções: {e}")
 
 def mostrar_jogadores(cursor):
-    """Mostra todos os jogadores existentes."""
-    cursor.execute("""
-        SELECT j.nome, j.posicao, a.nome AS selecao
-        FROM jogadores j
-        LEFT JOIN associacoes_esportivas a ON j.id_selecao = a.id_associacao
-    """)
-    jogadores = cursor.fetchall()
+    """Mostra todos os jogadores existentes com exibição formatada."""
+    try:
+        cursor.execute("""
+            SELECT j.nome, j.posicao, a.nome AS selecao
+            FROM jogadores j
+            LEFT JOIN associacoes_esportivas a ON j.id_selecao = a.id_associacao
+        """)
+        jogadores = cursor.fetchall()
 
-    if not jogadores:
-        print("Nenhum jogador encontrado.")
-    else:
-        print("\n--- Jogadores Existentes ---")
-        for jogador in jogadores:
-            print(f"Nome: {jogador[0]}, Posição: {jogador[1]}, Seleção: {jogador[2]}")
+        if not jogadores:
+            print("Nenhum jogador encontrado.")
+        else:
+            print("\n--- Jogadores Existentes ---")
+            # Criação da tabela com tabulate
+            tabela = tabulate(jogadores, headers=["Nome", "Posição", "Seleção"], tablefmt="grid")
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar jogadores: {e}")
 
 def mostrar_jogadores_contrato(cursor):
-    """Mostra todos os jogadores e se possuem contrato com algum clube."""
-    cursor.execute("""
-        SELECT j.nome AS jogador, c.numero AS numero, j.posicao, a.nome AS clube
-        FROM jogadores j
-        LEFT JOIN contratos c ON j.id_jogador = c.id_jogador
-        LEFT JOIN associacoes_esportivas a ON c.id_associacao = a.id_associacao
-    """)
-    jogadores_contrato = cursor.fetchall()
+    """Mostra todos os jogadores que possuem contrato com algum clube."""
+    try:
+        cursor.execute("""
+            SELECT j.nome AS jogador, c.numero AS numero_camisa, a.nome AS clube, c.salario
+            FROM jogadores j
+            INNER JOIN contratos c ON j.id_jogador = c.id_jogador
+            INNER JOIN associacoes_esportivas a ON c.id_associacao = a.id_associacao
+        """)
+        jogadores_contrato = cursor.fetchall()
 
-    if not jogadores_contrato:
-        print("Nenhum jogador ou contrato encontrado.")
-    else:
-        print("\n--- Jogadores e Contratos ---")
-        for jogador in jogadores_contrato:
-            if jogador[1] and jogador[2]:
-                print(f"Jogador: {jogador[0]}, Clube: {jogador[2]}, Salário: R${jogador[1]:,.2f}")
-            else:
-                print(f"Jogador: {jogador[0]}, Clube: Sem contrato")
+        if not jogadores_contrato:
+            print("Nenhum jogador com contrato encontrado.")
+        else:
+            print("\n--- Jogadores com Contratos ---")
+            # Formatação com tabulate
+            tabela = tabulate(
+                jogadores_contrato,
+                headers=["Jogador", "Número da Camisa", "Clube", "Salário"],
+                tablefmt="grid",
+                floatfmt=".2f"
+            )
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar jogadores e contratos: {e}")
 
 def mostrar_jogadores_geral(cursor):
-    """Retorna o nome do jogador e seu geral da tabela atributos."""
-    # Consulta SQL para buscar o nome do jogador e o atributo 'geral'
-    cursor.execute("""
-        SELECT j.nome, a.geral
-        FROM jogadores j
-        JOIN atributos a ON j.id_jogador = a.id_jogador
-    """)
+    """Mostra todos os jogadores e seus valores gerais de atributos."""
+    try:
+        cursor.execute("""
+            SELECT j.nome, a.geral
+            FROM jogadores j
+            INNER JOIN atributos a ON j.id_jogador = a.id_jogador
+        """)
+        jogadores_geral = cursor.fetchall()
 
-    jogadores_geral = cursor.fetchall()
-
-    if not jogadores_geral:
-        print("Nenhum jogador encontrado ou sem dados de atributos.")
-    else:
-        print("\n--- Jogadores e seus Atributos Gerais ---")
-        for jogador in jogadores_geral:
-            print(f"Jogador: {jogador[0]}, Geral: {jogador[1]}")
+        if not jogadores_geral:
+            print("Nenhum jogador com atributos encontrado.")
+        else:
+            print("\n--- Jogadores e seus Atributos Gerais ---")
+            # Formatação com tabulate
+            tabela = tabulate(
+                jogadores_geral,
+                headers=["Jogador", "Geral"],
+                tablefmt="grid"
+            )
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar jogadores e atributos: {e}")
 
 def mostrar_jogadores_estilos(cursor):
-    """Mostra todos os jogadores e seus estilos de jogo, mesmo que um jogador tenha múltiplos estilos."""
-    # Consulta SQL para buscar jogadores e seus estilos de jogo
-    cursor.execute("""
-        SELECT j.nome, ej.estilo_de_jogo
-        FROM jogadores j
-        LEFT JOIN estilos_de_jogo ej ON j.id_jogador = ej.id_jogador
-    """)
+    """Mostra todos os jogadores e seus estilos de jogo, mesmo que tenham múltiplos estilos."""
+    try:
+        cursor.execute("""
+            SELECT j.nome AS jogador, e.nome AS estilo
+            FROM jogadores j
+            INNER JOIN estilos_de_jogo_jogadores ej ON j.id_jogador = ej.id_jogador
+            INNER JOIN estilos_de_jogo e ON ej.id_estilo = e.id_estilo
+            ORDER BY j.nome
+        """)
+        jogadores_estilos = cursor.fetchall()
 
-    jogadores_estilos = cursor.fetchall()
-
-    if not jogadores_estilos:
-        print("Nenhum jogador encontrado ou sem estilos de jogo associados.")
-    else:
-        print("\n--- Jogadores e seus Estilos de Jogo ---")
-        # Armazenar o nome do jogador para evitar repetições ao exibir múltiplos estilos
-        jogadores_exibidos = set()
-
-        for jogador in jogadores_estilos:
-            nome_jogador, estilo_jogo = jogador
-            if nome_jogador not in jogadores_exibidos:
-                print(f"\nJogador: {nome_jogador}")
-                jogadores_exibidos.add(nome_jogador)
-            print(f"  Estilo de Jogo: {estilo_jogo}")
+        if not jogadores_estilos:
+            print("Nenhum jogador com estilos de jogo encontrado.")
+        else:
+            print("\n--- Jogadores e seus Estilos de Jogo ---")
+            # Preparação dos dados para exibição
+            tabela = tabulate(
+                jogadores_estilos,
+                headers=["Jogador", "Estilo de Jogo"],
+                tablefmt="grid"
+            )
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar jogadores e estilos de jogo: {e}")
 
 def mostrar_funcionarios(cursor):
-    """Mostra todos os funcionários registrados no banco."""
-    cursor.execute("SELECT f.nome, f.cargo FROM funcionarios f")
-    funcionarios = cursor.fetchall()
+    """Mostra todos os funcionários registrados no banco de dados."""
+    try:
+        cursor.execute("""
+            SELECT f.nome AS funcionario, c.descricao AS cargo, a.nome AS associacao
+            FROM funcionarios f
+            INNER JOIN cargos c ON f.id_cargo = c.id_cargo
+            INNER JOIN associacoes_esportivas a ON f.id_associacao = a.id_associacao
+        """)
+        funcionarios = cursor.fetchall()
 
-    if not funcionarios:
-        print("Nenhum funcionário encontrado.")
-    else:
-        print("\n--- Funcionários ---")
-        for funcionario in funcionarios:
-            print(f"Nome: {funcionario[0]}, Cargo: {funcionario[1]}")
+        if not funcionarios:
+            print("Nenhum funcionário encontrado.")
+        else:
+            print("\n--- Funcionários Registrados ---")
+            # Formatação com tabulate
+            tabela = tabulate(
+                funcionarios,
+                headers=["Funcionário", "Cargo", "Associação"],
+                tablefmt="grid"
+            )
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar funcionários: {e}")
 
 def mostrar_estadios_e_clubes(cursor):
-    """Mostra todos os estádios e seus respectivos clubes, caso existam."""
-    cursor.execute("""
-        SELECT e.nome, c.nome
-        FROM estadios e
-        LEFT JOIN clubes c ON e.id_clube = c.id_associacao
-    """)
-    estadios_clubes = cursor.fetchall()
+    """Mostra todos os estádios e seus respectivos clubes."""
+    try:
+        cursor.execute("""
+            SELECT e.nome AS estadio, e.capacidade, c.nome AS clube
+            FROM estadios e
+            INNER JOIN clube_estadios ce ON e.id_estadio = ce.id_estadio
+            INNER JOIN associacoes_esportivas c ON ce.id_associacao = c.id_associacao
+        """)
+        estadios_clubes = cursor.fetchall()
 
-    if not estadios_clubes:
-        print("Nenhum estádio encontrado ou sem clube associado.")
-    else:
-        print("\n--- Estádios e seus Clubes ---")
-        for estadio in estadios_clubes:
-            estadio_nome, clube_nome = estadio
-            if clube_nome:
-                print(f"Estádio: {estadio_nome}, Clube: {clube_nome}")
-            else:
-                print(f"Estádio: {estadio_nome}, Clube: Nenhum")
+        if not estadios_clubes:
+            print("Nenhum estádio encontrado ou associado a clubes.")
+        else:
+            print("\n--- Estádios e seus Clubes ---")
+            # Formatação com tabulate
+            tabela = tabulate(
+                estadios_clubes,
+                headers=["Estádio", "Capacidade", "Clube"],
+                tablefmt="grid",
+                numalign="right"
+            )
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar estádios e clubes: {e}")
 
 def mostrar_campeonatos(cursor):
-    """Mostra todos os campeonatos registrados no banco."""
-    cursor.execute("SELECT nome, tipo FROM campeonatos")
-    campeonatos = cursor.fetchall()
+    """Mostra todos os campeonatos registrados no banco de dados."""
+    try:
+        cursor.execute("""
+            SELECT id_campeonato, nome
+            FROM campeonatos
+        """)
+        campeonatos = cursor.fetchall()
 
-    if not campeonatos:
-        print("Nenhum campeonato encontrado.")
-    else:
-        print("\n--- Campeonatos ---")
-        for campeonato in campeonatos:
-            print(f"Nome: {campeonato[0]}, Tipo: {campeonato[1]}")
+        if not campeonatos:
+            print("Nenhum campeonato encontrado.")
+        else:
+            print("\n--- Campeonatos Registrados ---")
+            # Formatação com tabulate
+            tabela = tabulate(
+                campeonatos,
+                headers=["ID", "Nome do Campeonato"],
+                tablefmt="grid",
+                numalign="right"
+            )
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar campeonatos: {e}")
+
+def mostrar_campeonatos_associacoes(cursor):
+    """Mostra os campeonatos, associações participantes e suas classificações."""
+    try:
+        cursor.execute("""
+            SELECT 
+                c.nome AS campeonato,
+                a.nome AS associacao,
+                ca.classificacao
+            FROM campeonatos_associacoes ca
+            INNER JOIN campeonatos c ON ca.id_campeonato = c.id_campeonato
+            INNER JOIN associacoes_esportivas a ON ca.id_associacao = a.id_associacao
+            ORDER BY c.nome, ca.classificacao
+        """)
+        resultados = cursor.fetchall()
+
+        if not resultados:
+            print("Nenhum campeonato ou associação encontrada.")
+        else:
+            print("\n--- Campeonatos, Associações e Classificações ---")
+            # Preparação dos dados para exibição
+            tabela = tabulate(
+                resultados,
+                headers=["Campeonato", "Associação", "Classificação"],
+                tablefmt="grid"
+            )
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar dados: {e}")
 
 def mostrar_estatisticas(cursor):
-    """Mostra todas as estatísticas, incluindo nome do campeonato e nome do jogador."""
-    cursor.execute("""
-        SELECT e.nome AS campeonato, j.nome AS jogador, es.estatistica
-        FROM estatisticas es
-        JOIN campeonatos e ON es.id_campeonato = e.id_campeonato
-        JOIN jogadores j ON es.id_jogador = j.id_jogador
-    """)
-    estatisticas = cursor.fetchall()
+    """Mostra as estatísticas dos jogadores em campeonatos."""
+    try:
+        cursor.execute("""
+            SELECT 
+                j.nome AS jogador,
+                ca.nome AS campeonato,
+                e.gol AS gols,
+                e.assist AS assistencias,
+                e.nota_jogo AS nota_media,
+                e.numero_jogos AS jogos
+            FROM estatisticas e
+            INNER JOIN jogadores j ON e.id_jogador = j.id_jogador
+            INNER JOIN campeonatos ca ON e.id_campeonato = ca.id_campeonato
+            ORDER BY ca.nome, j.nome
+        """)
+        estatisticas = cursor.fetchall()
 
-    if not estatisticas:
-        print("Nenhuma estatística encontrada.")
-    else:
-        print("\n--- Estatísticas ---")
-        for estatistica in estatisticas:
-            print(f"Campeonato: {estatistica[0]}, Jogador: {estatistica[1]}, Estatística: {estatistica[2]}")
+        if not estatisticas:
+            print("Nenhuma estatística encontrada.")
+        else:
+            print("\n--- Estatísticas dos Jogadores em Campeonatos ---")
+            # Formatação com tabulate
+            tabela = tabulate(
+                estatisticas,
+                headers=["Jogador", "Campeonato", "Gols", "Assistências", "Nota","Jogos"],
+                tablefmt="grid",
+                floatfmt=".2f"
+            )
+            print(tabela)
+    except Error as e:
+        print(f"Erro ao buscar estatísticas: {e}")
 
 def menu():
     """Menu principal com categorias organizadas"""
@@ -1630,7 +1961,6 @@ def menu():
 
             cursor.close()
             conexao.close()
-
 
 def menu_inserir():
     """Submenu para opções de inserir"""
@@ -1727,7 +2057,7 @@ def menu_alterar():
             elif escolha == "5":
                 alterar_contrato(cursor, conexao)
             elif escolha == "6":
-                alterar_atributos(cursor, conexao)
+                alterar_atributos(cursor)
             elif escolha == "7":
                 alterar_estilo_de_jogo(cursor, conexao)
             elif escolha == "8":
@@ -1785,13 +2115,23 @@ def menu_excluir():
             conexao.close()
 
 def menu_select():
-    """Submenu para opções de inserir"""
+    """Submenu para opções de consultar dados"""
     while True:
-        print("\nMENU INSERIR:")
+        print("\nMENU Select:")
         print("1 - Consultar Clubes")
-        #colocar o resto dos selects
+        print("2 - Consultar Seleções")
+        print("3 - Consultar Jogadores")
+        print("4 - Consultar Jogadores com Contrato")
+        print("5 - Consultar Atributos Gerais dos Jogadores")
+        print("6 - Consultar Estilos de Jogo dos Jogadores")
+        print("7 - Consultar Funcionários")
+        print("8 - Consultar Estádios e Clubes")
+        print("9 - Consultar Campeonatos")
+        print("10 - Consultar Campeonatos e Associações")
+        print("11 - Consultar Estatísticas dos Jogadores")
+        print("X - Sair")
 
-        escolha = input("Escolha uma opção: ").strip().upper()
+        escolha = input("Escolha uma opção: ").strip()
 
         conexao = conectar_banco()
         if conexao:
@@ -1799,23 +2139,25 @@ def menu_select():
 
             if escolha == "1":
                 mostrar_clubes(cursor)
-            if escolha == "2":
+            elif escolha == "2":
                 mostrar_selecoes(cursor)
-            if escolha == "3":
+            elif escolha == "3":
                 mostrar_jogadores(cursor)
-            if escolha == "4":
+            elif escolha == "4":
                 mostrar_jogadores_contrato(cursor)
-            if escolha == "5":
+            elif escolha == "5":
                 mostrar_jogadores_geral(cursor)
-            if escolha == "6":
+            elif escolha == "6":
                 mostrar_jogadores_estilos(cursor)
-            if escolha == "7":
+            elif escolha == "7":
                 mostrar_funcionarios(cursor)
-            if escolha == "8":
+            elif escolha == "8":
                 mostrar_estadios_e_clubes(cursor)
-            if escolha == "9":
+            elif escolha == "9":
                 mostrar_campeonatos(cursor)
-            if escolha == "10":
+            elif escolha == "10":
+                mostrar_campeonatos_associacoes(cursor)
+            elif escolha == "11":
                 mostrar_estatisticas(cursor)
             else:
                 break
@@ -1830,25 +2172,65 @@ def fluxo_geral(cursor, conexao):
     print("\n--- Iniciando o fluxo geral ---")
 
     # 1. Criar um clube
-    print("\nCriando um clube:")
-    id_clube = inserir_associacao(cursor, tipo="clube")
-    inserir_clube(cursor, id_clube, conexao)
+    while True:
+        adicionar_clube = input("\nDeseja adicionar um clube? (s/n): ").strip().lower()
+        if adicionar_clube == 's':
+            print("\nCriando um clube:")
+            id_clube = inserir_associacao(cursor, tipo="clube")
+            inserir_clube(cursor, id_clube, conexao)
+        elif adicionar_clube == 'n':
+            print("Pulando a criação do clube...")
+            break
+        else:
+            print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
 
     # 2. Criar um jogador
-    print("\nCriando um jogador:")
-    inserir_jogador(cursor)
+    while True:
+        adicionar_jogador = input("\nDeseja adicionar um jogador? (s/n): ").strip().lower()
+        if adicionar_jogador == 's':
+            print("\nCriando um jogador:")
+            inserir_jogador(cursor)
+        elif adicionar_jogador == 'n':
+            print("Pulando a criação do jogador...")
+            break
+        else:
+            print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
 
     # 3. Atrelar um estádio ao clube
-    print("\nAtrelando um estádio ao clube:")
-    inserir_estadio_a_clube(cursor, conexao)
+    while True:
+        adicionar_estadio = input("\nDeseja atrelando um estádio ao clube? (s/n): ").strip().lower()
+        if adicionar_estadio == 's':
+            print("\nAtrelando um estádio ao clube:")
+            inserir_estadio_a_clube(cursor, conexao)
+        elif adicionar_estadio == 'n':
+            print("Pulando a associação do estádio...")
+            break
+        else:
+            print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
 
     # 4. Criar um contrato para o jogador
-    print("\nCriando um contrato para o jogador:")
-    inserir_contrato(cursor)
+    while True:
+        adicionar_contrato = input("\nDeseja criar um contrato para o jogador? (s/n): ").strip().lower()
+        if adicionar_contrato == 's':
+            print("\nCriando um contrato para o jogador:")
+            inserir_contrato(cursor)
+        elif adicionar_contrato == 'n':
+            print("Pulando a criação do contrato...")
+            break
+        else:
+            print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
 
     # 5. Criar atributos para o jogador
-    print("\nCriando atributos para o jogador:")
-    inserir_atributos(cursor)
+    while True:
+        adicionar_atributos = input("\nDeseja criar atributos para o jogador? (s/n): ").strip().lower()
+        if adicionar_atributos == 's':
+            print("\nCriando atributos para o jogador:")
+            inserir_atributos(cursor)
+        elif adicionar_atributos == 'n':
+            print("Pulando a criação dos atributos...")
+            break
+        else:
+            print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
 
     # 6. Criar estilos de jogo e associar ao jogador
     while True:
@@ -1862,15 +2244,30 @@ def fluxo_geral(cursor, conexao):
             print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
 
     # 7. Criar um campeonato
-    print("\nCriando um campeonato:")
-    inserir_campeonato(cursor, conexao)
+    while True:
+        adicionar_campeonato = input("\nDeseja criar um campeonato? (s/n): ").strip().lower()
+        if adicionar_campeonato == 's':
+            print("\nCriando um campeonato:")
+            inserir_campeonato(cursor, conexao)
+        elif adicionar_campeonato == 'n':
+            print("Pulando a criação do campeonato...")
+            break
+        else:
+            print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
 
     # 8. Inserir estatísticas para o jogador no campeonato
-    print("\nInserindo estatísticas para o jogador no campeonato:")
-    inserir_estatisticas(cursor, conexao)
+    while True:
+        adicionar_estatisticas = input("\nDeseja inserir estatísticas para o jogador no campeonato? (s/n): ").strip().lower()
+        if adicionar_estatisticas == 's':
+            print("\nInserindo estatísticas para o jogador no campeonato:")
+            inserir_estatisticas(cursor, conexao)
+        elif adicionar_estatisticas == 'n':
+            print("Pulando a inserção de estatísticas...")
+            break
+        else:
+            print("Entrada inválida. Digite 's' para Sim ou 'n' para Não.")
 
     print("\n--- Fluxo geral concluído com sucesso! ---")
-
 
 #wasd
 if __name__ == "__main__":

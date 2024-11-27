@@ -113,7 +113,7 @@ CREATE TABLE atributos (
     passe DECIMAL(4,2) NOT NULL CHECK (passe BETWEEN 0 AND 100),
     chute DECIMAL(4,2) NOT NULL CHECK (chute BETWEEN 0 AND 100),
     defesa DECIMAL(4,2) NOT NULL CHECK (defesa BETWEEN 0 AND 100),
-    geral INT NOT NULL CHECK (geral BETWEEN 0 AND 100),
+    geral INT NOT NULL CHECK (geral BETWEEN 0 AND 100) default 0,
     id_jogador INT NOT NULL,
     FOREIGN KEY (id_jogador) REFERENCES jogadores(id_jogador) ON DELETE CASCADE
 );
@@ -174,11 +174,40 @@ CREATE TABLE funcionarios(
     FOREIGN KEY (id_nacionalidade) REFERENCES selecoes(id_associacao),
     FOREIGN KEY (id_cargo) REFERENCES cargos(id_cargo)
 );
-#select * from cidades;
-#select * from associacoes_esportivas;
-#select * from clubes;
-#select * from selecoes s left join associacoes_esportivas a on a.id_associacao = s.id_associacao;
-#SELECT * FROM clubes c left JOIN associacoes_esportivas a ON a.id_associacao = c.id_associacao JOIN cidades ci ON ci.id_cidade = c.id_cidade;
-#select * from jogadores
 
-
+INSERT INTO estilos_de_jogo (nome)
+VALUES 
+	('Chute Colocado'),
+	('Cavadinha'),
+	('Testada Firme'),
+	('Super Chute'),
+	('Bola Parada'),
+	('Passe Incisivo'),
+	('Passe Preciso'),
+	('Tiki-Taka'),
+	('Passe Longo'),
+	('Passe de GPS'),
+	('Dominio'),
+	('Firula'),
+	('Cabeca Fria'),
+	('Veloz'),
+	('Tecnica'),
+	('Malvadeza'),
+	('Barreira'),
+	('Xerife'),
+	('Interceptacao'),
+	('Cercar'),
+	('Carrinho Limpo'),
+	('Antecipacao'),
+	('Acrobata'),
+	('Jogo Aereo'),
+	('Trivela'),
+	('Incansavel'),
+	('Passos Largos'),
+	('Lateral Longo'),
+	('Arremeco Longo'),
+	('Usa os pes'),
+	('Saida Aerea'),
+	('Sai que e sua'),
+	('Braco Elastico'),
+	('Reflexo Rapido');           
