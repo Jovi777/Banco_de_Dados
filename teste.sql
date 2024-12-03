@@ -149,7 +149,7 @@ CREATE TABLE estatisticas(
 CREATE TABLE partidas(
     id_partida INT AUTO_INCREMENT PRIMARY KEY,
     tempo TIME,
-    resultado INT,
+    resultado varchar(5),
     id_campeonato INT,
     id_mandante INT,
     id_visitante INT,
@@ -211,3 +211,29 @@ VALUES
 	('Sai que e sua'),
 	('Braco Elastico'),
 	('Reflexo Rapido');           
+    
+INSERT INTO associacoes_esportivas (sigla, apelido, qualidade, nome, mascote, formacao, tipo)
+VALUES ('PLV', 'Passe', 4.5, 'Passe Livre', 'Águia', '4-4-2', 'selecao');
+
+SET @id_associacao = LAST_INSERT_ID();
+
+INSERT INTO selecoes (id_associacao)
+VALUES (@id_associacao);
+
+SELECT * FROM associacoes_esportivas;
+SELECT * FROM cidades;
+SELECT * FROM clubes;
+SELECT * FROM selecoes;
+SELECT * FROM estadios;
+SELECT * FROM clube_estadios;
+SELECT * FROM estilos_de_jogo;
+SELECT * FROM jogadores;
+SELECT * FROM estilos_de_jogo_jogadores;
+SELECT * FROM contratos;
+SELECT * FROM atributos;
+SELECT * FROM campeonatos;
+SELECT * FROM estatisticas;
+SELECT * FROM funcionarios;
+SELECT * FROM campeonatos_associacoes;
+SELECT * FROM partidas;
+SELECT * FROM cargos;

@@ -2,7 +2,7 @@ from tabulate import tabulate
 #pip install tabulate
 import mysql.connector
 from mysql.connector import Error
-#testes:
+#Funçoes para calcular geral
 def inserir_atributos(cursor):
     """Insere os atributos de um jogador no banco de dados com verificação de intervalo (0-100), buscando ID e posição do jogador no banco."""
     
@@ -21,7 +21,6 @@ def inserir_atributos(cursor):
     posicao = posicao.strip().upper()  # Garante que a posição seja em maiúsculas
 
     def pedir_atributo(nome_atributo):
-        """Função auxiliar para pedir atributos e verificar se estão entre 0 e 100."""
         while True:
             try:
                 valor = float(input(f"Digite o atributo de {nome_atributo} (0-100): "))
@@ -248,6 +247,7 @@ def conectar_banco():
         print(f"Erro ao conectar ao banco de dados: {e}")
         return None
 
+#Funçoes para inserir
 def inserir_associacao(cursor, tipo):
     """Função para inserir dados na tabela associacoes_esportivas"""
     sigla = input("Digite a sigla da associação (3 caracteres): ").upper()
@@ -645,113 +645,6 @@ def inserir_contrato(cursor):
 
     cursor.execute(sql_contrato, valores_contrato)
     print(f"Contrato de jogador '{nome_jogador}' inserido com sucesso!")
-
-'''
-def inserir_atributos(cursor):
-    """Função para inserir atributos de um jogador"""
-    
-    # Passo 1: Solicitar o nome do jogador
-    nome_jogador = input("Digite o nome do jogador: ").title()
-    
-    # Passo 2: Verificar se o jogador existe
-    cursor.execute("SELECT id_jogador FROM jogadores WHERE nome = %s", (nome_jogador,))
-    jogador = cursor.fetchone()
-
-    if jogador is None:
-        print(f"O jogador '{nome_jogador}' não existe no banco de dados. Vamos adicioná-lo.")
-        # Chama a função para inserir o jogador
-        inserir_jogador(cursor)
-        
-        # Após a inserção, tentamos localizar novamente o jogador
-        cursor.execute("SELECT id_jogador FROM jogadores WHERE nome = %s", (nome_jogador,))
-        jogador = cursor.fetchone()
-
-        if jogador is None:
-            print("Erro: Jogador não foi inserido corretamente.")
-            return  # Sai da função caso o jogador ainda não tenha sido inserido corretamente
-    
-    # Passo 3: Coletar os atributos do jogador
-    while True:
-        try:
-            drible = float(input("Digite o valor de drible (0 a 100): "))
-            if 0 <= drible <= 100:
-                break
-            else:
-                print("Valor inválido! O drible deve estar entre 0 e 100.")
-        except ValueError:
-            print("Por favor, insira um número válido para o drible.")
-    
-    while True:
-        try:
-            ritmo = float(input("Digite o valor de ritmo (0 a 100): "))
-            if 0 <= ritmo <= 100:
-                break
-            else:
-                print("Valor inválido! O ritmo deve estar entre 0 e 100.")
-        except ValueError:
-            print("Por favor, insira um número válido para o ritmo.")
-    
-    while True:
-        try:
-            fisico = float(input("Digite o valor de físico (0 a 100): "))
-            if 0 <= fisico <= 100:
-                break
-            else:
-                print("Valor inválido! O físico deve estar entre 0 e 100.")
-        except ValueError:
-            print("Por favor, insira um número válido para o físico.")
-    
-    while True:
-        try:
-            passe = float(input("Digite o valor de passe (0 a 100): "))
-            if 0 <= passe <= 100:
-                break
-            else:
-                print("Valor inválido! O passe deve estar entre 0 e 100.")
-        except ValueError:
-            print("Por favor, insira um número válido para o passe.")
-    
-    while True:
-        try:
-            chute = float(input("Digite o valor de chute (0 a 100): "))
-            if 0 <= chute <= 100:
-                break
-            else:
-                print("Valor inválido! O chute deve estar entre 0 e 100.")
-        except ValueError:
-            print("Por favor, insira um número válido para o chute.")
-    
-    while True:
-        try:
-            defesa = float(input("Digite o valor de defesa (0 a 100): "))
-            if 0 <= defesa <= 100:
-                break
-            else:
-                print("Valor inválido! A defesa deve estar entre 0 e 100.")
-        except ValueError:
-            print("Por favor, insira um número válido para a defesa.")
-    
-    while True:
-        try:
-            geral = int(input("Digite o valor geral do jogador (0 a 100): "))
-            if 0 <= geral <= 100:
-                break
-            else:
-                print("Valor inválido! O valor geral deve estar entre 0 e 100.")
-        except ValueError:
-            print("Por favor, insira um número válido para o valor geral.")
-
-    # Passo 4: Inserir os atributos na tabela
-    sql_atributos = """
-        INSERT INTO atributos (drible, ritmo, fisico, passe, chute, defesa, geral, id_jogador)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """
-    
-    valores_atributos = (drible, ritmo, fisico, passe, chute, defesa, geral, jogador[0])
-
-    # Executa o comando de inserção
-    cursor.execute(sql_atributos, valores_atributos)
-    print(f"Atributos do jogador '{nome_jogador}' inseridos com sucesso!")'''
 
 def inserir_estilo_de_jogo(cursor):
     """Função para associar um estilo de jogo a um jogador"""
@@ -1274,76 +1167,6 @@ def alterar_contrato(cursor, conexao):
     conexao.commit()
 
     print(f"Contrato do jogador '{nome_jogador}' atualizado com sucesso!")
-
-'''
-def alterar_atributos(cursor, conexao):
-    """Função para alterar os atributos de um jogador"""
-    
-    # Passo 1: Solicitar o nome do jogador
-    nome_jogador = input("Digite o nome do jogador cujo atributo você deseja alterar: ").title()
-
-    # Passo 2: Verificar se o jogador existe
-    cursor.execute("SELECT id_jogador FROM jogadores WHERE nome = %s", (nome_jogador,))
-    jogador = cursor.fetchone()
-
-    if jogador is None:
-        print(f"O jogador '{nome_jogador}' não existe no banco de dados.")
-        return  # Sai da função caso o jogador não exista
-
-    # Passo 3: Verificar se o jogador já tem atributos registrados
-    cursor.execute("SELECT * FROM atributos WHERE id_jogador = %s", (jogador[0],))
-    atributos = cursor.fetchone()
-
-    if atributos is None:
-        print(f"O jogador '{nome_jogador}' não possui atributos registrados.")
-        return  # Sai da função caso o jogador não tenha atributos registrados
-
-    # Passo 4: Coletar os novos valores dos atributos (se desejado)
-    print("\n--- Alterando atributos do jogador ---")
-    print("Deixe em branco para manter o valor atual.")
-    
-    # Atualizar drible
-    novo_drible = input(f"Novo valor de drible (atualmente {atributos[1]}): ")
-    novo_drible = float(novo_drible) if novo_drible else atributos[1]
-
-    # Atualizar ritmo
-    novo_ritmo = input(f"Novo valor de ritmo (atualmente {atributos[2]}): ")
-    novo_ritmo = float(novo_ritmo) if novo_ritmo else atributos[2]
-
-    # Atualizar físico
-    novo_fisico = input(f"Novo valor de físico (atualmente {atributos[3]}): ")
-    novo_fisico = float(novo_fisico) if novo_fisico else atributos[3]
-
-    # Atualizar passe
-    novo_passe = input(f"Novo valor de passe (atualmente {atributos[4]}): ")
-    novo_passe = float(novo_passe) if novo_passe else atributos[4]
-
-    # Atualizar chute
-    novo_chute = input(f"Novo valor de chute (atualmente {atributos[5]}): ")
-    novo_chute = float(novo_chute) if novo_chute else atributos[5]
-
-    # Atualizar defesa
-    nova_defesa = input(f"Novo valor de defesa (atualmente {atributos[6]}): ")
-    nova_defesa = float(nova_defesa) if nova_defesa else atributos[6]
-
-    # Atualizar geral
-    novo_geral = input(f"Novo valor geral (atualmente {atributos[7]}): ")
-    novo_geral = int(novo_geral) if novo_geral else atributos[7]
-
-    # Passo 5: Atualizar os atributos no banco de dados
-    sql_update_atributos = """
-        UPDATE atributos
-        SET drible = %s, ritmo = %s, fisico = %s, passe = %s, chute = %s, defesa = %s, geral = %s
-        WHERE id_jogador = %s
-    """
-    
-    valores_atributos = (novo_drible, novo_ritmo, novo_fisico, novo_passe, novo_chute, nova_defesa, novo_geral, jogador[0])
-
-    # Executa o comando de atualização
-    cursor.execute(sql_update_atributos, valores_atributos)
-    conexao.commit()
-    
-    print(f"Atributos do jogador '{nome_jogador}' atualizados com sucesso!")'''
 
 def alterar_estilo_de_jogo(cursor, conexao):
     """Função para alterar o estilo de jogo de um jogador"""
